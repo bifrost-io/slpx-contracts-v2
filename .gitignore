@@ -1,6 +1,14 @@
 # Compiler files
 cache/
+cache_hardhat/
 out/
+node_modules
+typechain
+typechain-types
+.DS_Store
+artifacts
+.states
+.deps
 
 # Ignores development broadcast logs
 !/broadcast
