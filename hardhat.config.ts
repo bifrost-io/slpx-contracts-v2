@@ -38,6 +38,18 @@ const config: HardhatUserConfig = {
       accounts:
           process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
+    base: {
+      url: "https://base-mainnet.infura.io",
+      chainId: 8453,
+      accounts:
+          process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+    },
+    base_testnet: {
+      url: "https://sepolia.base.org",
+      chainId: 84532,
+      accounts:
+          process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+    },
     soneium: {
       url: "https://rpc.soneium.org",
       chainId: 1868,
