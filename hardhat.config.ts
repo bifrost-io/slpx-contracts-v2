@@ -39,7 +39,7 @@ const config: HardhatUserConfig = {
           process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
     base: {
-      url: "https://base-mainnet.infura.io",
+      url: "https://mainnet.base.org",
       chainId: 8453,
       accounts:
           process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
@@ -81,6 +81,14 @@ const config: HardhatUserConfig = {
           process.env.MOONBEAM_API_KEY !== undefined
               ? process.env.MOONBEAM_API_KEY
               : "",
+      base_testnet:
+          process.env.BASE_TESTNET_API_KEY !== undefined
+              ? process.env.BASE_TESTNET_API_KEY
+              : "",
+      base:
+          process.env.BASE_API_KEY !== undefined
+              ? process.env.BASE_API_KEY
+              : "",
       moonriver:
           process.env.MOONRIVER_API_KEY !== undefined
               ? process.env.MOONRIVER_API_KEY
@@ -110,6 +118,22 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: "https://soneium.blockscout.com/api",
           browserURL: "https://soneium.blockscout.com"
+        }
+      },
+      {
+        network: "base",
+        chainId: 8453,
+        urls: {
+          apiURL: "https://api.basescan.org/api",
+          browserURL: "https://basescan.org"
+        }
+      },
+      {
+        network: "base_testnet",
+        chainId: 84532,
+        urls: {
+          apiURL: "https://api-sepolia.basescan.org/api",
+          browserURL: "https://sepolia.basescan.org"
         }
       }
     ]
