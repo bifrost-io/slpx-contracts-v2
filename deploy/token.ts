@@ -22,10 +22,10 @@ const deployFunction: DeployFunction = async function ({
         init: {
           methodName: "initialize",
           args: [
-            "0x8d010bf9C26881788b4e6bf5Fd1bdC358c8F90b8",
-            "0x3Ef3eC150558f9E56D65ad44ea33553Add3c4579",
-            "Bifrost Voucher DOT",
-            "vDOT",
+            "0xF83455EBd661eB4f414aD3BF252a62b08C3f990C",
+            "0x3658e00f5DDb9Fa0c7e9820e8d16C3C17eaB73CA",
+            "Bifrost Voucher GLMR",
+            "vGLMR",
           ],
         },
       },

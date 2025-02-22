@@ -1,5 +1,5 @@
 {
-  "address": "0x79D6028229f2d819a1a4bb52a05Bc97F5f37D667",
+  "address": "0xf659c15AEB6E41A9edAcBbF3fAeF3902c7f3fE1b",
   "abi": [
     {
       "anonymous": false,
@@ -755,16 +755,6 @@
           "internalType": "address",
           "name": "owner",
           "type": "address"
-        },
-        {
-          "internalType": "string",
-          "name": "name",
-          "type": "string"
-        },
-        {
-          "internalType": "string",
-          "name": "symbol",
-          "type": "string"
         }
       ],
       "name": "initialize",
@@ -1249,90 +1239,90 @@
       "type": "constructor"
     }
   ],
-  "transactionHash": "0xd53a0813ab5ad4f46c50111b5942ce58598964bd8a68f410ea208efd0bc1cdac",
+  "transactionHash": "0x14e5c4db0066d07cf755b16e1500d54502d6a745d117342a659476f16577bb54",
   "receipt": {
     "to": null,
-    "from": "0x4597C97a43dFBb4a398E2b16AA9cE61f90d801DD",
-    "contractAddress": "0x79D6028229f2d819a1a4bb52a05Bc97F5f37D667",
-    "transactionIndex": 39,
-    "gasUsed": "870123",
-    "logsBloom": "0x00000000000000000000000000000000400000000000000000800000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000008002000000002000001000000000400010000000000000000000000020000000000000000000800000000810000000000000000000000400000000000000010000808000000000000000000000080000000000000800000000000000000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000404000000000000020020000000001000004000000000000000000000001000000000000000000000000000",
-    "blockHash": "0xc57fa8ae409025de3eec44cdb127d51127c8f51ac810ce10ce7db61511ebf0bf",
-    "transactionHash": "0xd53a0813ab5ad4f46c50111b5942ce58598964bd8a68f410ea208efd0bc1cdac",
+    "from": "0x8Ce84E9Fa0101D317D8956D73610ad3e0E219d41",
+    "contractAddress": "0xf659c15AEB6E41A9edAcBbF3fAeF3902c7f3fE1b",
+    "transactionIndex": 10,
+    "gasUsed": "867488",
+    "logsBloom": "0x00000000000000000000000000100000400000000000000000800000000000000000000000000000000000000000000000000000000000000000000000000000000000000002000000000400000002000001000000000400000000000200000000000000020000000000000000000800000000810000000000000000000000400002000000000000000808000000000000000000000080000000002000800000000000000000000000000000000000000000000000000001000000000000000000000020000000000000200000000000000000000404000000000000000020000000000000000080000000000000000000000000000000000000000000000000",
+    "blockHash": "0x90a31cd6083498500259e25243a1c60d63afe523bfd9ad28fea674d4775f78e3",
+    "transactionHash": "0x14e5c4db0066d07cf755b16e1500d54502d6a745d117342a659476f16577bb54",
     "logs": [
       {
-        "transactionIndex": 39,
-        "blockNumber": 21872216,
-        "transactionHash": "0xd53a0813ab5ad4f46c50111b5942ce58598964bd8a68f410ea208efd0bc1cdac",
-        "address": "0x79D6028229f2d819a1a4bb52a05Bc97F5f37D667",
+        "transactionIndex": 10,
+        "blockNumber": 132307343,
+        "transactionHash": "0x14e5c4db0066d07cf755b16e1500d54502d6a745d117342a659476f16577bb54",
+        "address": "0xf659c15AEB6E41A9edAcBbF3fAeF3902c7f3fE1b",
         "topics": [
           "0xbc7cd75a20ee27fd9adebab32041f755214dbc6bffa90cc0225b39da2e5c2d3b",
-          "0x0000000000000000000000000a702f34da7b4514c74d35ff68891d1ee57930ef"
+          "0x00000000000000000000000036fab2071c7668d9b755b3ff45b21f7d86be1a42"
         ],
         "data": "0x",
-        "logIndex": 146,
-        "blockHash": "0xc57fa8ae409025de3eec44cdb127d51127c8f51ac810ce10ce7db61511ebf0bf"
+        "logIndex": 50,
+        "blockHash": "0x90a31cd6083498500259e25243a1c60d63afe523bfd9ad28fea674d4775f78e3"
       },
       {
-        "transactionIndex": 39,
-        "blockNumber": 21872216,
-        "transactionHash": "0xd53a0813ab5ad4f46c50111b5942ce58598964bd8a68f410ea208efd0bc1cdac",
-        "address": "0x79D6028229f2d819a1a4bb52a05Bc97F5f37D667",
+        "transactionIndex": 10,
+        "blockNumber": 132307343,
+        "transactionHash": "0x14e5c4db0066d07cf755b16e1500d54502d6a745d117342a659476f16577bb54",
+        "address": "0xf659c15AEB6E41A9edAcBbF3fAeF3902c7f3fE1b",
         "topics": [
           "0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0",
           "0x0000000000000000000000000000000000000000000000000000000000000000",
-          "0x0000000000000000000000004597c97a43dfbb4a398e2b16aa9ce61f90d801dd"
+          "0x0000000000000000000000008ce84e9fa0101d317d8956d73610ad3e0e219d41"
         ],
         "data": "0x",
-        "logIndex": 147,
-        "blockHash": "0xc57fa8ae409025de3eec44cdb127d51127c8f51ac810ce10ce7db61511ebf0bf"
+        "logIndex": 51,
+        "blockHash": "0x90a31cd6083498500259e25243a1c60d63afe523bfd9ad28fea674d4775f78e3"
       },
       {
-        "transactionIndex": 39,
-        "blockNumber": 21872216,
-        "transactionHash": "0xd53a0813ab5ad4f46c50111b5942ce58598964bd8a68f410ea208efd0bc1cdac",
-        "address": "0x79D6028229f2d819a1a4bb52a05Bc97F5f37D667",
+        "transactionIndex": 10,
+        "blockNumber": 132307343,
+        "transactionHash": "0x14e5c4db0066d07cf755b16e1500d54502d6a745d117342a659476f16577bb54",
+        "address": "0xf659c15AEB6E41A9edAcBbF3fAeF3902c7f3fE1b",
         "topics": [
           "0x62e78cea01bee320cd4e420270b5ea74000d11b0c9f74754ebdbfc544b05a258"
         ],
-        "data": "0x0000000000000000000000004597c97a43dfbb4a398e2b16aa9ce61f90d801dd",
-        "logIndex": 148,
-        "blockHash": "0xc57fa8ae409025de3eec44cdb127d51127c8f51ac810ce10ce7db61511ebf0bf"
+        "data": "0x0000000000000000000000008ce84e9fa0101d317d8956d73610ad3e0e219d41",
+        "logIndex": 52,
+        "blockHash": "0x90a31cd6083498500259e25243a1c60d63afe523bfd9ad28fea674d4775f78e3"
       },
       {
-        "transactionIndex": 39,
-        "blockNumber": 21872216,
-        "transactionHash": "0xd53a0813ab5ad4f46c50111b5942ce58598964bd8a68f410ea208efd0bc1cdac",
-        "address": "0x79D6028229f2d819a1a4bb52a05Bc97F5f37D667",
+        "transactionIndex": 10,
+        "blockNumber": 132307343,
+        "transactionHash": "0x14e5c4db0066d07cf755b16e1500d54502d6a745d117342a659476f16577bb54",
+        "address": "0xf659c15AEB6E41A9edAcBbF3fAeF3902c7f3fE1b",
         "topics": [
           "0xc7f505b2f371ae2175ee4913f4499e1f2633a7b5936321eed1cdaeb6115181d2"
         ],
         "data": "0x0000000000000000000000000000000000000000000000000000000000000001",
-        "logIndex": 149,
-        "blockHash": "0xc57fa8ae409025de3eec44cdb127d51127c8f51ac810ce10ce7db61511ebf0bf"
+        "logIndex": 53,
+        "blockHash": "0x90a31cd6083498500259e25243a1c60d63afe523bfd9ad28fea674d4775f78e3"
       },
       {
-        "transactionIndex": 39,
-        "blockNumber": 21872216,
-        "transactionHash": "0xd53a0813ab5ad4f46c50111b5942ce58598964bd8a68f410ea208efd0bc1cdac",
-        "address": "0x79D6028229f2d819a1a4bb52a05Bc97F5f37D667",
+        "transactionIndex": 10,
+        "blockNumber": 132307343,
+        "transactionHash": "0x14e5c4db0066d07cf755b16e1500d54502d6a745d117342a659476f16577bb54",
+        "address": "0xf659c15AEB6E41A9edAcBbF3fAeF3902c7f3fE1b",
         "topics": [
           "0x7e644d79422f17c01e4894b5f4f588d331ebfa28653d42ae832dc59e38c9798f"
         ],
-        "data": "0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000cfffc1eebdeebe540f77a97cb95b360738c3f602",
-        "logIndex": 150,
-        "blockHash": "0xc57fa8ae409025de3eec44cdb127d51127c8f51ac810ce10ce7db61511ebf0bf"
+        "data": "0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000b079fa0c53c2da05ea517ffc545cd7e3c180a136",
+        "logIndex": 54,
+        "blockHash": "0x90a31cd6083498500259e25243a1c60d63afe523bfd9ad28fea674d4775f78e3"
       }
     ],
-    "blockNumber": 21872216,
-    "cumulativeGasUsed": "6755394",
+    "blockNumber": 132307343,
+    "cumulativeGasUsed": "5259330",
     "status": 1,
     "byzantium": true
   },
   "args": [
-    "0x0a702F34Da7B4514c74D35FF68891d1EE57930EF",
-    "0xcFffc1eEbdeEBe540f77a97cb95b360738C3F602",
-    "0x2016a0d2000000000000000000000000667b70d97e3fd39530c6ded23e285c04e35d36d80000000000000000000000004597c97a43dfbb4a398e2b16aa9ce61f90d801dd000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000013426966726f737420566f756368657220424e4300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000476424e4300000000000000000000000000000000000000000000000000000000"
+    "0x36FAB2071C7668D9B755b3FF45b21f7D86be1A42",
+    "0xB079fA0C53c2da05eA517Ffc545Cd7E3C180a136",
+    "0x485cc95500000000000000000000000044c97257ab904a22dafa31e75190e3af9331e81c0000000000000000000000008ce84e9fa0101d317d8956d73610ad3e0e219d41"
   ],
   "numDeployments": 1,
   "solcInputHash": "0e89febeebc7444140de8e67c9067d2c",
@@ -1342,13 +1332,11 @@
   "execute": {
     "methodName": "initialize",
     "args": [
-      "0x667b70d97E3fd39530c6DED23E285c04e35D36d8",
-      "0x4597C97a43dFBb4a398E2b16AA9cE61f90d801DD",
-      "Bifrost Voucher BNC",
-      "vBNC"
+      "0x44C97257Ab904A22DAfA31E75190E3AF9331E81c",
+      "0x8Ce84E9Fa0101D317D8956D73610ad3e0E219d41"
     ]
   },
-  "implementation": "0x0a702F34Da7B4514c74D35FF68891d1EE57930EF",
+  "implementation": "0x36FAB2071C7668D9B755b3FF45b21f7D86be1A42",
   "devdoc": {
     "details": "This contract implements a proxy that is upgradeable by an admin. To avoid https://medium.com/nomic-labs-blog/malicious-backdoors-in-ethereum-proxies-62629adf3357[proxy selector clashing], which can potentially be used in an attack, this contract uses the https://blog.openzeppelin.com/the-transparent-proxy-pattern/[transparent proxy pattern]. This pattern implies two things that go hand in hand: 1. If any account other than the admin calls the proxy, the call will be forwarded to the implementation, even if that call matches one of the admin functions exposed by the proxy itself. 2. If the admin calls the proxy, it can access the admin functions, but its calls will never be forwarded to the implementation. If the admin tries to call a function on the implementation it will fail with an error that says \"admin cannot fallback to proxy target\". These properties mean that the admin account can only be used for admin actions like upgrading the proxy or changing the admin, so it's best if it's a dedicated account that is not used for anything else. This will avoid headaches due to sudden errors when trying to call a function from the proxy implementation. Our recommendation is for the dedicated account to be an instance of the {ProxyAdmin} contract. If set up this way, you should think of the `ProxyAdmin` instance as the real administrative interface of your proxy.",
     "kind": "dev",

@@ -38,6 +38,30 @@ const config: HardhatUserConfig = {
       accounts:
           process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
+    ethereum: {
+      url: "https://ethereum-rpc.publicnode.com",
+      chainId: 1,
+      accounts:
+          process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+    }, 
+    optimistic: {
+      url: "https://optimism-rpc.publicnode.com",
+      chainId: 10,
+      accounts:
+          process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+    },
+    arbitrum: {
+      url: "https://arbitrum-one.public.blastapi.io",
+      chainId: 42161,
+      accounts:
+          process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+    },
+    bsc: {
+      url: "https://bsc-mainnet.public.blastapi.io",
+      chainId: 56,
+      accounts:
+          process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+    },
     base: {
       url: "https://mainnet.base.org",
       chainId: 8453,
@@ -85,6 +109,22 @@ const config: HardhatUserConfig = {
           process.env.BASE_TESTNET_API_KEY !== undefined
               ? process.env.BASE_TESTNET_API_KEY
               : "",
+      mainnet:
+          process.env.ETHEREUM_API_KEY !== undefined
+              ? process.env.ETHEREUM_API_KEY
+              : "",      
+      optimisticEthereum:
+          process.env.OP_API_KEY !== undefined
+              ? process.env.OP_API_KEY
+              : "",  
+      arbitrumOne:
+          process.env.ARB_API_KEY !== undefined
+              ? process.env.ARB_API_KEY
+              : "", 
+      bsc:
+          process.env.BSC_API_KEY !== undefined
+              ? process.env.BSC_API_KEY
+              : "",      
       base:
           process.env.BASE_API_KEY !== undefined
               ? process.env.BASE_API_KEY
