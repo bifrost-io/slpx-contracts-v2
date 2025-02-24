@@ -204,7 +204,7 @@ contract TokenTest is Test {
 
     function testFuzz_Deposit(uint256 assets) public {
         vm.assume(assets > 0 && assets <= 1000);
-        
+
         vm.startPrank(owner);
         implement.unpause();
         vm.stopPrank();
@@ -220,24 +220,24 @@ contract TokenTest is Test {
     }
 
     function testFuzz_Mint(uint256 shares) public {
-    vm.assume(shares > 0 && shares <= 1000);
-    
-    vm.startPrank(owner);
-    implement.unpause();
-    implement.changeRoleAdmin(address(1), true);
-    vm.stopPrank();
+        vm.assume(shares > 0 && shares <= 1000);
 
-    vm.startPrank(address(1));
-    erc20.approve(address(implement), shares);
-    implement.mint(shares, address(1));
+        vm.startPrank(owner);
+        implement.unpause();
+        implement.changeRoleAdmin(address(1), true);
+        vm.stopPrank();
 
-    assertEq(implement.balanceOf(address(1)), shares);
-    vm.stopPrank();
-}
+        vm.startPrank(address(1));
+        erc20.approve(address(implement), shares);
+        implement.mint(shares, address(1));
+
+        assertEq(implement.balanceOf(address(1)), shares);
+        vm.stopPrank();
+    }
 
     function testFuzz_Withdraw(uint256 assets) public {
         vm.assume(assets > 0 && assets <= 1000);
-        
+
         vm.startPrank(owner);
         implement.unpause();
         vm.stopPrank();
@@ -245,9 +245,9 @@ contract TokenTest is Test {
         vm.startPrank(address(1));
         erc20.approve(address(implement), 1000);
         implement.deposit(1000, address(1));
-        
+
         implement.withdraw(assets, address(1), address(1));
-        
+
         assertEq(erc20.balanceOf(address(1)), assets);
         assertEq(implement.balanceOf(address(1)), 1000 - assets);
         vm.stopPrank();
@@ -255,7 +255,7 @@ contract TokenTest is Test {
 
     function testFuzz_Redeem(uint256 shares) public {
         vm.assume(shares > 0 && shares <= 1000);
-        
+
         vm.startPrank(owner);
         implement.unpause();
         vm.stopPrank();
@@ -263,14 +263,13 @@ contract TokenTest is Test {
         vm.startPrank(address(1));
         erc20.approve(address(implement), 1000);
         implement.deposit(1000, address(1));
-        
+
         implement.redeem(shares, address(1), address(1));
-        
+
         assertEq(implement.balanceOf(address(1)), 1000 - shares);
         assertEq(erc20.balanceOf(address(1)), shares);
         vm.stopPrank();
-    } 
-    
+    }
 
     function testFuzz_OverflowDeposit() public {
         vm.startPrank(owner);
@@ -293,7 +292,7 @@ contract TokenTest is Test {
         erc20.approve(address(implement), 1000);
         implement.deposit(500, address(1));
         implement.withdraw(200, address(1), address(1));
-        
+
         assertEq(implement.totalSupply(), implement.totalAssets());
         vm.stopPrank();
     }
@@ -309,7 +308,7 @@ contract TokenTest is Test {
 
         vm.startPrank(owner);
         implement.pause();
-        
+
         vm.startPrank(address(1));
         erc20.approve(address(implement), 100);
         vm.expectRevert(EnforcedPause.selector);
@@ -324,16 +323,16 @@ contract TokenTest is Test {
 
         vm.startPrank(address(1));
         erc20.approve(address(implement), 1000);
-        
+
         implement.deposit(100, address(1));
         assertEq(implement.balanceOf(address(1)), 100);
-        
+
         implement.withdraw(50, address(1), address(1));
         assertEq(implement.balanceOf(address(1)), 50);
-        
+
         implement.deposit(30, address(1));
         assertEq(implement.balanceOf(address(1)), 80);
-        
+
         implement.withdraw(80, address(1), address(1));
         assertEq(implement.balanceOf(address(1)), 0);
         vm.stopPrank();
@@ -341,17 +340,15 @@ contract TokenTest is Test {
 
     function test_OwnershipTransfer() public {
         address newOwner = address(2);
-        
+
         vm.startPrank(owner);
         implement.transferOwnership(newOwner);
         vm.stopPrank();
-        
+
         assertEq(implement.owner(), newOwner);
-        
+
         vm.startPrank(newOwner);
         implement.unpause();
         vm.stopPrank();
-    } 
-
-
+    }
 }
