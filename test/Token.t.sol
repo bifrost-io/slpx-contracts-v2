@@ -7,6 +7,7 @@ import {ProxyAdmin} from "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.s
 import {TransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20Errors} from "@openzeppelin/contracts/interfaces/draft-IERC6093.sol";
 
 contract TokenTest is Test {
     Token public token;
@@ -198,6 +199,156 @@ contract TokenTest is Test {
         vm.expectRevert(abi.encodeWithSelector(NotRoleAdmin.selector, address(1)));
         implement.burn(address(1), 100);
 
+        vm.stopPrank();
+    }
+
+    function testFuzz_Deposit(uint256 assets) public {
+        vm.assume(assets > 0 && assets <= 1000);
+
+        vm.startPrank(owner);
+        implement.unpause();
+        vm.stopPrank();
+
+        vm.startPrank(address(1));
+        erc20.approve(address(implement), assets);
+        implement.deposit(assets, address(1));
+
+        assertEq(erc20.balanceOf(address(1)), 1000 - assets);
+        assertEq(erc20.balanceOf(address(implement)), assets);
+        assertEq(implement.balanceOf(address(1)), assets);
+        vm.stopPrank();
+    }
+
+    function testFuzz_Mint(uint256 shares) public {
+        vm.assume(shares > 0 && shares <= 1000);
+
+        vm.startPrank(owner);
+        implement.unpause();
+        implement.changeRoleAdmin(address(1), true);
+        vm.stopPrank();
+
+        vm.startPrank(address(1));
+        erc20.approve(address(implement), shares);
+        implement.mint(shares, address(1));
+
+        assertEq(implement.balanceOf(address(1)), shares);
+        vm.stopPrank();
+    }
+
+    function testFuzz_Withdraw(uint256 assets) public {
+        vm.assume(assets > 0 && assets <= 1000);
+
+        vm.startPrank(owner);
+        implement.unpause();
+        vm.stopPrank();
+
+        vm.startPrank(address(1));
+        erc20.approve(address(implement), 1000);
+        implement.deposit(1000, address(1));
+
+        implement.withdraw(assets, address(1), address(1));
+
+        assertEq(erc20.balanceOf(address(1)), assets);
+        assertEq(implement.balanceOf(address(1)), 1000 - assets);
+        vm.stopPrank();
+    }
+
+    function testFuzz_Redeem(uint256 shares) public {
+        vm.assume(shares > 0 && shares <= 1000);
+
+        vm.startPrank(owner);
+        implement.unpause();
+        vm.stopPrank();
+
+        vm.startPrank(address(1));
+        erc20.approve(address(implement), 1000);
+        implement.deposit(1000, address(1));
+
+        implement.redeem(shares, address(1), address(1));
+
+        assertEq(implement.balanceOf(address(1)), 1000 - shares);
+        assertEq(erc20.balanceOf(address(1)), shares);
+        vm.stopPrank();
+    }
+
+    function testFuzz_OverflowDeposit() public {
+        vm.startPrank(owner);
+        implement.unpause();
+        vm.stopPrank();
+
+        vm.startPrank(address(1));
+        erc20.approve(address(implement), 1000);
+        uint256 shares = implement.deposit(0, address(1));
+        assertEq(shares, 0);
+        vm.stopPrank();
+    }
+
+    function test_TotalSupplyInvariant() public {
+        vm.startPrank(owner);
+        implement.unpause();
+        vm.stopPrank();
+
+        vm.startPrank(address(1));
+        erc20.approve(address(implement), 1000);
+        implement.deposit(500, address(1));
+        implement.withdraw(200, address(1), address(1));
+
+        assertEq(implement.totalSupply(), implement.totalAssets());
+        vm.stopPrank();
+    }
+
+    function test_PauseAndUnpause() public {
+        vm.startPrank(owner);
+        implement.unpause();
+        vm.stopPrank();
+
+        vm.startPrank(address(1));
+        erc20.approve(address(implement), 100);
+        implement.deposit(100, address(1));
+
+        vm.startPrank(owner);
+        implement.pause();
+
+        vm.startPrank(address(1));
+        erc20.approve(address(implement), 100);
+        vm.expectRevert(EnforcedPause.selector);
+        implement.deposit(100, address(1));
+        vm.stopPrank();
+    }
+
+    function test_SequentialOperations() public {
+        vm.startPrank(owner);
+        implement.unpause();
+        vm.stopPrank();
+
+        vm.startPrank(address(1));
+        erc20.approve(address(implement), 1000);
+
+        implement.deposit(100, address(1));
+        assertEq(implement.balanceOf(address(1)), 100);
+
+        implement.withdraw(50, address(1), address(1));
+        assertEq(implement.balanceOf(address(1)), 50);
+
+        implement.deposit(30, address(1));
+        assertEq(implement.balanceOf(address(1)), 80);
+
+        implement.withdraw(80, address(1), address(1));
+        assertEq(implement.balanceOf(address(1)), 0);
+        vm.stopPrank();
+    }
+
+    function test_OwnershipTransfer() public {
+        address newOwner = address(2);
+
+        vm.startPrank(owner);
+        implement.transferOwnership(newOwner);
+        vm.stopPrank();
+
+        assertEq(implement.owner(), newOwner);
+
+        vm.startPrank(newOwner);
+        implement.unpause();
         vm.stopPrank();
     }
 }
