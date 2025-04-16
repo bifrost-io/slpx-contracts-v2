@@ -39,9 +39,6 @@ abstract contract VTokenBase is Initializable, ERC4626Upgradeable, OwnableUpgrad
     /// @notice Bifrost chain ID
     uint256 private constant BIFROST_CHAIN_ID = 2030;
 
-    /// @notice Maximum number of requests to process in one batch
-    uint256 private constant BATCH_CLAIM_LIMIT = 50;
-
     // =================== State variables ===================
     /// @notice mapping of admins of defined roles
     mapping(address => bool) public rolesAdmin;
@@ -62,8 +59,11 @@ abstract contract VTokenBase is Initializable, ERC4626Upgradeable, OwnableUpgrad
     /// @notice Trigger address
     address public triggerAddress;
 
-    /// @notice Redeem request queue
-    RedeemRequest[] public redeemQueue;
+    /// @notice Redeem request mapping
+    mapping(uint256 => RedeemRequest) public redeemQueue;
+
+    /// @notice Next request ID
+    uint256 public nextRequestId;
 
     /// @notice Current processing index of redeem queue
     uint256 public redeemQueueIndex;
@@ -111,6 +111,15 @@ abstract contract VTokenBase is Initializable, ERC4626Upgradeable, OwnableUpgrad
 
     /// @notice Throws if user has reached maximum redeem requests limit
     error MaxRedeemRequestsReached(address user, uint256 currentCount, uint256 maxLimit);
+
+    /// @notice Throws if the batch size is greater than the number of requests
+    error InvalidBatchSize();
+
+    /// @notice Throws if the batch size is larger than the actual available requests
+    error BatchSizeTooLarge(uint256 requestedSize, uint256 actualSize);
+
+    /// @notice Throws if the request ID is not found in the user's request list
+    error RequestIdNotFound(address user, uint256 requestId);
 
     // =================== Modifiers ===================
     /// @notice Modifier: Only trigger address can call
@@ -233,47 +242,48 @@ abstract contract VTokenBase is Initializable, ERC4626Upgradeable, OwnableUpgrad
         emit AsyncRedeemCompleted(vTokenAmount);
     }
 
-    function batchClaim() external onlyTriggerAddress {
-        // Get current queue length
-        uint256 length = redeemQueue.length;
-        if (redeemQueueIndex >= length) {
-            return;
+    function batchClaim(uint256 batchSize) external onlyTriggerAddress {
+        if (redeemQueueIndex >= nextRequestId) {
+            revert InvalidBatchSize();
         }
 
-        // Calculate end index for this batch
-        uint256 endIndex = redeemQueueIndex + BATCH_CLAIM_LIMIT;
-        if (endIndex > length) {
-            endIndex = length;
+        // Calculate actual batch size
+        uint256 actualBatchSize = nextRequestId - redeemQueueIndex;
+        if (batchSize > actualBatchSize) {
+            revert BatchSizeTooLarge(batchSize, actualBatchSize);
         }
 
         // Process redeem requests
-        uint256 processedCount = 0;
-        for (uint256 i = redeemQueueIndex; i < endIndex; i++) {
+        for (uint256 i = redeemQueueIndex; i < redeemQueueIndex + batchSize; i++) {
             RedeemRequest memory request = redeemQueue[i];
             if (request.assets > 0) {  // Check if already processed
-                SafeERC20.safeTransfer(IERC20(asset()), request.receiver, request.assets);
-                // Mark as processed
-                delete redeemQueue[i];
                 // Remove index from userRedeemRequests
                 uint256[] storage userRequests = userRedeemRequests[request.receiver];
+                bool found = false;
                 for (uint256 j = 0; j < userRequests.length; j++) {
                     if (userRequests[j] == i) {
                         // Move last element to current position and remove last element
                         userRequests[j] = userRequests[userRequests.length - 1];
                         userRequests.pop();
+                        found = true;
                         break;
                     }
                 }
-                processedCount++;
+                if (!found) {
+                    revert RequestIdNotFound(request.receiver, i);
+                }
+                SafeERC20.safeTransfer(IERC20(asset()), request.receiver, request.assets);
+                // Mark as processed
+                delete redeemQueue[i];
                 // Emit success event
                 emit RedeemRequestSuccess(i, request.receiver, request.assets, request.startTime, block.timestamp);
             }
         }
 
         // Update processing index
-        redeemQueueIndex = endIndex;
+        redeemQueueIndex += batchSize;
 
-        emit BatchClaimProcessed(redeemQueueIndex - BATCH_CLAIM_LIMIT, endIndex, processedCount);
+        emit BatchClaimProcessed(redeemQueueIndex - batchSize, redeemQueueIndex, batchSize);
     }
 
     // =================== ERC4626 functions ===================
@@ -373,13 +383,14 @@ abstract contract VTokenBase is Initializable, ERC4626Upgradeable, OwnableUpgrad
         _burn(owner, shares);
 
         // Create redeem request
-        uint256 requestId = redeemQueue.length;
-        redeemQueue.push(RedeemRequest({
+        uint256 requestId = nextRequestId;
+        redeemQueue[requestId] = RedeemRequest({
             receiver: receiver,
             assets: assets,
             startTime: block.timestamp
-        }));
+        });
         userRedeemRequests[owner].push(requestId);
+        nextRequestId++;
 
         currentCycleRedeemVTokenAmount += shares;
 

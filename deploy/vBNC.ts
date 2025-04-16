@@ -1,6 +1,6 @@
 import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
-
+import { BNC, MULTI_SIGNATURE_WALLET } from "../constants";
 const deployFunction: DeployFunction = async function ({
   deployments,
   getNamedAccounts,
@@ -16,14 +16,15 @@ const deployFunction: DeployFunction = async function ({
     from: deployer,
     log: true,
     deterministicDeployment: false,
+    contract: "VToken",
     proxy: {
       proxyContract: "OpenZeppelinTransparentProxy",
       execute: {
         init: {
           methodName: "initialize",
           args: [
-            "0xf877500C6ff3cf8305245bCb3Cf1c5A6B7287aEF",
-            "0x8Ce84E9Fa0101D317D8956D73610ad3e0E219d41",
+            BNC.address,
+            MULTI_SIGNATURE_WALLET,
           ],
         },
       },

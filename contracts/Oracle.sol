@@ -12,6 +12,13 @@ import {StateMachine} from "@polytope-labs/ismp-solidity/interfaces/StateMachine
 
 contract Oracle is IIsmpModule, Ownable, Pausable {
 
+    // =================== Constants ===================
+    /// @notice Bifrost chain ID
+    bytes constant private BIFROST_CHAIN_ID = bytes("2030");
+
+    /// @notice Bifrost SLPX pallet identifier
+    bytes constant private BIFROST_SLPX = bytes("bif-slpx");
+
     struct PoolInfo {
         uint256 tokenAmount;
         uint256 vTokenAmount;
@@ -92,7 +99,8 @@ contract Oracle is IIsmpModule, Ownable, Pausable {
 
     function onAccept(IncomingPostRequest memory incoming) external override onlyIsmpHost {
         // Check if request is from Bifrost
-        if (keccak256(incoming.request.from) != keccak256(bytes("bif-slpx"))) {
+        if (keccak256(incoming.request.source) != keccak256(BIFROST_CHAIN_ID) || 
+            keccak256(incoming.request.from) != keccak256(BIFROST_SLPX)) {
             revert NotFromBifrost();
         }
         

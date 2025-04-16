@@ -150,35 +150,31 @@ contract VTokenBaseTest is Test {
     }
     
     function test_BatchClaim() public {
-        // Set max redeem requests
-        vm.prank(owner);
-        vToken.setMaxRedeemRequestsPerUser(2);
-        
-        // First user makes redeem requests
-        vm.prank(user);
-        vToken.deposit(100 ether, user);
-        vm.prank(user);
-        vToken.withdraw(50 ether, user, user);
-        vm.prank(user);
-        vToken.withdraw(30 ether, user, user);
-        
-        // Second user makes redeem request
-        address user2 = address(4);
-        underlyingToken.transfer(user2, 100 ether);
+        // Setup
+        address user1 = address(1);
+        address user2 = address(2);
+        uint256 amount = 1000;
+
+        // Mint tokens to users
+        vToken.mint(user1, amount);
+        vToken.mint(user2, amount);
+
+        // Create redeem requests
+        vm.prank(user1);
+        vToken.redeem(amount, user1, user1);
+
         vm.prank(user2);
-        underlyingToken.approve(address(vToken), type(uint256).max);
-        vm.prank(user2);
-        vToken.deposit(100 ether, user2);
-        vm.prank(user2);
-        vToken.withdraw(40 ether, user2, user2);
-        
+        vToken.redeem(amount, user2, user2);
+
         // Process batch claim
         vm.prank(triggerAddress);
-        vToken.batchClaim();
-        
-        // Check results
-        assertEq(underlyingToken.balanceOf(user), 980 ether);
-        assertEq(underlyingToken.balanceOf(user2), 960 ether);
+        vToken.batchClaim(2);  // Process 2 requests
+
+        // Verify
+        assertEq(vToken.balanceOf(user1), 0);
+        assertEq(vToken.balanceOf(user2), 0);
+        assertEq(underlyingToken.balanceOf(user1), amount);
+        assertEq(underlyingToken.balanceOf(user2), amount);
     }
     
     function test_SetMaxRedeemRequestsPerUser() public {
@@ -189,8 +185,20 @@ contract VTokenBaseTest is Test {
     }
     
     function test_OnlyTriggerAddressCanBatchClaim() public {
-        vm.expectRevert(abi.encodeWithSignature("NotTriggerAddress(address)", address(this)));
-        vToken.batchClaim();
+        // Setup
+        address user = address(1);
+        uint256 amount = 1000;
+
+        // Mint tokens to user
+        vToken.mint(user, amount);
+
+        // Create redeem request
+        vm.prank(user);
+        vToken.redeem(amount, user, user);
+
+        // Try to process batch claim with non-trigger address
+        vm.expectRevert(abi.encodeWithSelector(VTokenBase.NotTriggerAddress.selector, address(this)));
+        vToken.batchClaim(1);  // Try to process 1 request
     }
     
     function test_OnlyOwnerCanSetMaxRedeemRequests() public {
