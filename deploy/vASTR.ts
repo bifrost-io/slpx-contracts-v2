@@ -1,6 +1,6 @@
 import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
-import { ASTR, MULTI_SIGNATURE_WALLET } from "../constants";
+import { ASTR, MULTI_SIGNATURE_WALLET, V_ASTR } from "../constants";
 const deployFunction: DeployFunction = async function ({
   deployments,
   getNamedAccounts,
@@ -25,6 +25,8 @@ const deployFunction: DeployFunction = async function ({
           args: [
             ASTR.address,
             MULTI_SIGNATURE_WALLET,
+            V_ASTR.name,
+            V_ASTR.symbol,
           ],
         },
       },

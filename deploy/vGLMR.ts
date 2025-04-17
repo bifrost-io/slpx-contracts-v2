@@ -1,6 +1,6 @@
 import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
-import { GLMR, MULTI_SIGNATURE_WALLET } from "../constants";
+import { GLMR, MULTI_SIGNATURE_WALLET, V_GLMR } from "../constants";
 const deployFunction: DeployFunction = async function ({
   deployments,
   getNamedAccounts,
@@ -25,6 +25,8 @@ const deployFunction: DeployFunction = async function ({
           args: [
             GLMR.address,
             MULTI_SIGNATURE_WALLET,
+            V_GLMR.name,
+            V_GLMR.symbol,
           ],
         },
       },

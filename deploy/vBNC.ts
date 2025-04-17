@@ -1,6 +1,6 @@
 import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
-import { BNC, MULTI_SIGNATURE_WALLET } from "../constants";
+import { BNC, MULTI_SIGNATURE_WALLET, V_BNC } from "../constants";
 const deployFunction: DeployFunction = async function ({
   deployments,
   getNamedAccounts,
@@ -25,6 +25,8 @@ const deployFunction: DeployFunction = async function ({
           args: [
             BNC.address,
             MULTI_SIGNATURE_WALLET,
+            V_BNC.name,
+            V_BNC.symbol,
           ],
         },
       },
