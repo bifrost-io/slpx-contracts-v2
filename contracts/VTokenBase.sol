@@ -14,10 +14,16 @@ import {Oracle} from "./Oracle.sol";
 import {IDispatcher, DispatchPost} from "@polytope-labs/ismp-solidity/interfaces/IDispatcher.sol";
 import {StateMachine} from "@polytope-labs/ismp-solidity/interfaces/StateMachine.sol";
 
-abstract contract VTokenBase is Initializable, ERC4626Upgradeable, OwnableUpgradeable, PausableUpgradeable, ERC165Upgradeable {
+abstract contract VTokenBase is
+    Initializable,
+    ERC4626Upgradeable,
+    OwnableUpgradeable,
+    PausableUpgradeable,
+    ERC165Upgradeable
+{
     using Math for uint256;
     using SafeERC20 for IERC20;
-    
+
     // =================== Type declarations ===================
     /// @notice Async operation type
     enum AsyncOperation {
@@ -100,7 +106,9 @@ abstract contract VTokenBase is Initializable, ERC4626Upgradeable, OwnableUpgrad
     event MaxRedeemRequestsPerUserChanged(uint256 oldLimit, uint256 newLimit);
 
     /// @notice Emitted when a redeem request is successfully processed
-    event RedeemRequestSuccess(uint256 indexed requestId, address indexed receiver, uint256 assets, uint256 startTime, uint256 endTime);
+    event RedeemRequestSuccess(
+        uint256 indexed requestId, address indexed receiver, uint256 assets, uint256 startTime, uint256 endTime
+    );
 
     // =================== Errors ===================
     /// @notice Throws if the caller is not a role admin
@@ -138,19 +146,16 @@ abstract contract VTokenBase is Initializable, ERC4626Upgradeable, OwnableUpgrad
         _;
     }
 
-    function __VTokenBase_init(
-        IERC20 _asset,
-        address _owner,
-        string memory _name,
-        string memory _symbol
-    ) internal onlyInitializing {
+    function __VTokenBase_init(IERC20 _asset, address _owner, string memory _name, string memory _symbol)
+        internal
+        onlyInitializing
+    {
         __ERC20_init(_name, _symbol);
         __ERC4626_init(_asset);
         __Ownable_init(_owner);
         __Pausable_init();
         __ERC165_init();
         _pause();
-        
     }
 
     function setOracle(address _oracle) external onlyOwner {
@@ -196,12 +201,7 @@ abstract contract VTokenBase is Initializable, ERC4626Upgradeable, OwnableUpgrad
 
         // Send mint request to Bifrost
         DispatchPost memory post = DispatchPost({
-            body: abi.encode(
-                block.chainid,
-                AsyncOperation.MINT,
-                currentCycleMintTokenAmount,
-                currentCycleMintVTokenAmount
-            ),
+            body: abi.encode(block.chainid, AsyncOperation.MINT, currentCycleMintTokenAmount, currentCycleMintVTokenAmount),
             dest: StateMachine.polkadot(BIFROST_CHAIN_ID),
             timeout: 0,
             to: BIFROST_SLPX,
@@ -222,11 +222,7 @@ abstract contract VTokenBase is Initializable, ERC4626Upgradeable, OwnableUpgrad
     function asyncRedeem() external onlyTriggerAddress {
         // Send redeem request to Bifrost
         DispatchPost memory post = DispatchPost({
-            body: abi.encode(
-                block.chainid,
-                AsyncOperation.REDEEM,
-                currentCycleRedeemVTokenAmount
-            ),
+            body: abi.encode(block.chainid, AsyncOperation.REDEEM, currentCycleRedeemVTokenAmount),
             dest: StateMachine.polkadot(BIFROST_CHAIN_ID),
             timeout: 0,
             to: BIFROST_SLPX,
@@ -256,7 +252,8 @@ abstract contract VTokenBase is Initializable, ERC4626Upgradeable, OwnableUpgrad
         // Process redeem requests
         for (uint256 i = redeemQueueIndex; i < redeemQueueIndex + batchSize; i++) {
             RedeemRequest memory request = redeemQueue[i];
-            if (request.assets > 0) {  // Check if already processed
+            if (request.assets > 0) {
+                // Check if already processed
                 // Remove index from userRedeemRequests
                 uint256[] storage userRequests = userRedeemRequests[request.receiver];
                 bool found = false;
@@ -288,7 +285,7 @@ abstract contract VTokenBase is Initializable, ERC4626Upgradeable, OwnableUpgrad
 
     // =================== ERC4626 functions ===================
     function totalAssets() public view virtual override returns (uint256) {
-        (uint256 tokenAmount, ) = oracle.poolInfo(address(asset()));
+        (uint256 tokenAmount,) = oracle.poolInfo(address(asset()));
         return tokenAmount;
     }
 
@@ -384,11 +381,7 @@ abstract contract VTokenBase is Initializable, ERC4626Upgradeable, OwnableUpgrad
 
         // Create redeem request
         uint256 requestId = nextRequestId;
-        redeemQueue[requestId] = RedeemRequest({
-            receiver: receiver,
-            assets: assets,
-            startTime: block.timestamp
-        });
+        redeemQueue[requestId] = RedeemRequest({receiver: receiver, assets: assets, startTime: block.timestamp});
         userRedeemRequests[owner].push(requestId);
         nextRequestId++;
 
@@ -419,4 +412,4 @@ abstract contract VTokenBase is Initializable, ERC4626Upgradeable, OwnableUpgrad
         return interfaceId == type(IERC4626).interfaceId || interfaceId == type(IERC20).interfaceId
             || super.supportsInterface(interfaceId);
     }
-} 
+}
