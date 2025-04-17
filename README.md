@@ -64,3 +64,9 @@ $ forge --help
 $ anvil --help
 $ cast --help
 ```
+
+### Contract Lint
+
+```shell
+$ yarn solhint
+```
