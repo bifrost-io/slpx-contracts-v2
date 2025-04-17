@@ -1,13 +1,20 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.24;
 
-import "@polytope-labs/ismp-solidity/interfaces/IIsmpModule.sol";
-import "@polytope-labs/ismp-solidity/interfaces/IDispatcher.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {StorageValue} from "@polytope-labs/solidity-merkle-trees/src/Types.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
-import {IIsmpModule, BaseIsmpModule} from "@polytope-labs/ismp-solidity/interfaces/IIsmpModule.sol";
+import {
+    IIsmpModule,
+    IncomingPostRequest,
+    IncomingPostResponse,
+    IncomingGetResponse,
+    PostRequest,
+    PostResponse,
+    GetRequest
+} from "@polytope-labs/ismp-solidity/interfaces/IIsmpModule.sol";
+import {IDispatcher} from "@polytope-labs/ismp-solidity/interfaces/IDispatcher.sol";
 import {StateMachine} from "@polytope-labs/ismp-solidity/interfaces/StateMachine.sol";
 
 contract Oracle is IIsmpModule, Ownable, Pausable {
@@ -46,8 +53,8 @@ contract Oracle is IIsmpModule, Ownable, Pausable {
         _;
     }
 
-    constructor(address _host) Ownable(msg.sender) Pausable() {
-        _host = _host;
+    constructor(address hostAddress) Ownable(msg.sender) Pausable() {
+        _host = hostAddress;
     }
 
     function pause() external onlyOwner {
@@ -66,11 +73,11 @@ contract Oracle is IIsmpModule, Ownable, Pausable {
 
     /// Get vToken by token.
     function getVTokenAmountByToken(address _token, uint256 _tokenAmount) public view whenNotPaused returns (uint256) {
-        PoolInfo memory poolInfo = poolInfo[_token];
-        require(poolInfo.vTokenAmount != 0 && poolInfo.tokenAmount != 0, "Not ready");
+        PoolInfo memory pool = poolInfo[_token];
+        require(pool.vTokenAmount != 0 && pool.tokenAmount != 0, "Not ready");
         uint256 mintFee = (rateInfo.mintRate * _tokenAmount) / 10000;
         uint256 tokenAmountExcludingFee = _tokenAmount - mintFee;
-        uint256 vTokenAmount = (tokenAmountExcludingFee * poolInfo.vTokenAmount) / poolInfo.tokenAmount;
+        uint256 vTokenAmount = (tokenAmountExcludingFee * pool.vTokenAmount) / pool.tokenAmount;
         return vTokenAmount;
     }
 
@@ -81,11 +88,11 @@ contract Oracle is IIsmpModule, Ownable, Pausable {
         whenNotPaused
         returns (uint256)
     {
-        PoolInfo memory poolInfo = poolInfo[_token];
-        require(poolInfo.vTokenAmount != 0 && poolInfo.tokenAmount != 0, "Not ready");
+        PoolInfo memory pool = poolInfo[_token];
+        require(pool.vTokenAmount != 0 && pool.tokenAmount != 0, "Not ready");
         uint256 redeemFee = (rateInfo.redeemRate * _vTokenAmount) / 10000;
         uint256 vTokenAmountExcludingFee = _vTokenAmount - redeemFee;
-        uint256 tokenAmount = (vTokenAmountExcludingFee * poolInfo.tokenAmount) / poolInfo.vTokenAmount;
+        uint256 tokenAmount = (vTokenAmountExcludingFee * pool.tokenAmount) / pool.vTokenAmount;
         return tokenAmount;
     }
 
@@ -104,23 +111,23 @@ contract Oracle is IIsmpModule, Ownable, Pausable {
         poolInfo[token].vTokenAmount = vtokenAmount;
     }
 
-    function onPostResponse(IncomingPostResponse memory incoming) external override onlyIsmpHost {
+    function onPostResponse(IncomingPostResponse memory _incoming) external view override onlyIsmpHost {
         revert("Not implemented");
     }
 
-    function onGetResponse(IncomingGetResponse memory) external override onlyIsmpHost {
+    function onGetResponse(IncomingGetResponse memory _incoming) external view override onlyIsmpHost {
         revert("Not implemented");
     }
 
-    function onPostRequestTimeout(PostRequest memory) external override onlyIsmpHost {
+    function onPostRequestTimeout(PostRequest memory _request) external view override onlyIsmpHost {
         revert("Not implemented");
     }
 
-    function onPostResponseTimeout(PostResponse memory) external override onlyIsmpHost {
+    function onPostResponseTimeout(PostResponse memory _response) external view override onlyIsmpHost {
         revert("Not implemented");
     }
 
-    function onGetTimeout(GetRequest memory) external override onlyIsmpHost {
+    function onGetTimeout(GetRequest memory _request) external view override onlyIsmpHost {
         revert("Not implemented");
     }
 }
