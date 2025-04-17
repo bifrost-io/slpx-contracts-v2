@@ -14,8 +14,7 @@
   "license": "Apache-2.0",
   "scripts": {
     "build": "hardhat compile",
-    "solhint": "solhint 'contracts/**/*.sol'",
-    "postinstall": "ln -sf ./node_modules/@polytope-labs/ismp-solidity/interfaces/* ./contracts/interfaces/"
+    "solhint": "solhint 'contracts/**/*.sol'"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.1",
