@@ -11,10 +11,13 @@ import {
     PostResponse,
     GetRequest
 } from "@polytope-labs/ismp-solidity/interfaces/IIsmpModule.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 contract Oracle is IIsmpModule, Ownable {
+    using Math for uint256;
     // =================== Constants ===================
     /// @notice Bifrost chain ID
+
     bytes private constant BIFROST_CHAIN_ID = bytes("2030");
 
     /// @notice Bifrost SLPX pallet identifier
@@ -41,7 +44,9 @@ contract Oracle is IIsmpModule, Ownable {
 
     // =================== Events ===================
     /// @notice Emitted when fee rates are changed
-    event FeeRateChanged(uint16 oldMintFeeRate, uint16 oldRedeemFeeRate, uint16 newMintFeeRate, uint16 newRedeemFeeRate);
+    event FeeRateChanged(
+        uint16 oldMintFeeRate, uint16 oldRedeemFeeRate, uint16 newMintFeeRate, uint16 newRedeemFeeRate
+    );
 
     /// @notice Throws if the caller is not the ISMP host.
     error NotIsmpHost();
@@ -81,26 +86,34 @@ contract Oracle is IIsmpModule, Ownable {
     }
 
     /// Get vToken by token.
-    function getVTokenAmountByToken(address _token, uint256 _tokenAmount) public view returns (uint256) {
+    function getVTokenAmountByToken(address _token, uint256 _tokenAmount, Math.Rounding rounding)
+        public
+        view
+        returns (uint256)
+    {
         PoolInfo memory pool = poolInfo[_token];
         if (pool.vTokenAmount == 0 || pool.tokenAmount == 0) {
             revert PoolNotReady();
         }
-        uint256 mintFee = (_tokenAmount * feeRateInfo.mintFeeRate) / FEE_DENOMINATOR;
+        uint256 mintFee = _tokenAmount.mulDiv(feeRateInfo.mintFeeRate, FEE_DENOMINATOR, rounding);
         uint256 tokenAmountExcludingFee = _tokenAmount - mintFee;
-        uint256 vTokenAmount = (tokenAmountExcludingFee * pool.vTokenAmount) / pool.tokenAmount;
+        uint256 vTokenAmount = tokenAmountExcludingFee.mulDiv(pool.vTokenAmount, pool.tokenAmount + 1, rounding);
         return vTokenAmount;
     }
 
     /// Get token by vToken.
-    function getTokenAmountByVToken(address _token, uint256 _vTokenAmount) public view returns (uint256) {
+    function getTokenAmountByVToken(address _token, uint256 _vTokenAmount, Math.Rounding rounding)
+        public
+        view
+        returns (uint256)
+    {
         PoolInfo memory pool = poolInfo[_token];
         if (pool.vTokenAmount == 0 || pool.tokenAmount == 0) {
             revert PoolNotReady();
         }
-        uint256 redeemFee = (_vTokenAmount * feeRateInfo.redeemFeeRate) / FEE_DENOMINATOR;
+        uint256 redeemFee = _vTokenAmount.mulDiv(feeRateInfo.redeemFeeRate, FEE_DENOMINATOR, rounding);
         uint256 vTokenAmountExcludingFee = _vTokenAmount - redeemFee;
-        uint256 tokenAmount = (vTokenAmountExcludingFee * pool.tokenAmount) / pool.vTokenAmount;
+        uint256 tokenAmount = vTokenAmountExcludingFee.mulDiv(pool.tokenAmount + 1, pool.vTokenAmount, rounding);
         return tokenAmount;
     }
 

@@ -289,44 +289,24 @@ abstract contract VTokenBase is
         return tokenAmount;
     }
 
-    function convertToShares(uint256 assets) public view virtual override returns (uint256) {
-        return oracle.getVTokenAmountByToken(address(asset()), assets);
+    function _convertToShares(uint256 assets, Math.Rounding rounding)
+        internal
+        view
+        virtual
+        override
+        returns (uint256)
+    {
+        return oracle.getVTokenAmountByToken(address(asset()), assets, rounding);
     }
 
-    function convertToAssets(uint256 shares) public view virtual override returns (uint256) {
-        return oracle.getTokenAmountByVToken(address(asset()), shares);
-    }
-
-    function maxDeposit(address) public view virtual override returns (uint256) {
-        return type(uint256).max;
-    }
-
-    function maxMint(address) public view virtual override returns (uint256) {
-        return type(uint256).max;
-    }
-
-    function maxWithdraw(address owner) public view virtual override returns (uint256) {
-        return convertToAssets(balanceOf(owner));
-    }
-
-    function maxRedeem(address owner) public view virtual override returns (uint256) {
-        return balanceOf(owner);
-    }
-
-    function previewDeposit(uint256 assets) public view virtual override returns (uint256) {
-        return convertToShares(assets);
-    }
-
-    function previewMint(uint256 shares) public view virtual override returns (uint256) {
-        return convertToAssets(shares);
-    }
-
-    function previewWithdraw(uint256 assets) public view virtual override returns (uint256) {
-        return convertToShares(assets);
-    }
-
-    function previewRedeem(uint256 shares) public view virtual override returns (uint256) {
-        return convertToAssets(shares);
+    function _convertToAssets(uint256 shares, Math.Rounding rounding)
+        internal
+        view
+        virtual
+        override
+        returns (uint256)
+    {
+        return oracle.getTokenAmountByVToken(address(asset()), shares, rounding);
     }
 
     function deposit(uint256 assets, address receiver) public virtual override whenNotPaused returns (uint256) {
