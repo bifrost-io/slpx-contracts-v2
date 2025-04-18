@@ -2,8 +2,10 @@
   "extends": "solhint:recommended",
   "plugins": ["prettier"],
   "rules": {
-    "compiler-version": ["error","^0.8.0"],
-    "max-line-length": ["warn", 120],
-    "quotes": ["warn", "double"]
+    "compiler-version": ["error","^0.8.24"],
+    "max-line-length": ["warn", 125],
+    "quotes": ["warn", "double"],
+    "func-name-mixedcase": "off",
+    "func-visibility": ["warn",{"ignoreConstructors":true}]
   }
 }

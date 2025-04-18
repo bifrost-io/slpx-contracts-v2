@@ -206,7 +206,7 @@ abstract contract VTokenBase is
             timeout: 0,
             to: BIFROST_SLPX,
             fee: 0,
-            payer: tx.origin
+            payer: _msgSender()
         });
         dispatcher.dispatch(post);
 
@@ -227,7 +227,7 @@ abstract contract VTokenBase is
             timeout: 0,
             to: BIFROST_SLPX,
             fee: 0,
-            payer: tx.origin
+            payer: _msgSender()
         });
         dispatcher.dispatch(post);
 

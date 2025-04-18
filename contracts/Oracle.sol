@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.24;
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {StorageValue} from "@polytope-labs/solidity-merkle-trees/src/Types.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {
@@ -14,8 +12,6 @@ import {
     PostResponse,
     GetRequest
 } from "@polytope-labs/ismp-solidity/interfaces/IIsmpModule.sol";
-import {IDispatcher} from "@polytope-labs/ismp-solidity/interfaces/IDispatcher.sol";
-import {StateMachine} from "@polytope-labs/ismp-solidity/interfaces/StateMachine.sol";
 
 contract Oracle is IIsmpModule, Ownable, Pausable {
     // =================== Constants ===================
@@ -45,6 +41,10 @@ contract Oracle is IIsmpModule, Ownable, Pausable {
     error NotIsmpHost();
     /// @notice Throws if the caller is not from Bifrost
     error NotFromBifrost();
+    /// @notice Throws if the pool is not ready
+    error PoolNotReady();
+    /// @notice Throws if the function is not implemented
+    error NotImplemented();
 
     modifier onlyIsmpHost() {
         if (_msgSender() != _host) {
@@ -74,7 +74,9 @@ contract Oracle is IIsmpModule, Ownable, Pausable {
     /// Get vToken by token.
     function getVTokenAmountByToken(address _token, uint256 _tokenAmount) public view whenNotPaused returns (uint256) {
         PoolInfo memory pool = poolInfo[_token];
-        require(pool.vTokenAmount != 0 && pool.tokenAmount != 0, "Not ready");
+        if (pool.vTokenAmount == 0 || pool.tokenAmount == 0) {
+            revert PoolNotReady();
+        }
         uint256 mintFee = (rateInfo.mintRate * _tokenAmount) / 10000;
         uint256 tokenAmountExcludingFee = _tokenAmount - mintFee;
         uint256 vTokenAmount = (tokenAmountExcludingFee * pool.vTokenAmount) / pool.tokenAmount;
@@ -89,7 +91,9 @@ contract Oracle is IIsmpModule, Ownable, Pausable {
         returns (uint256)
     {
         PoolInfo memory pool = poolInfo[_token];
-        require(pool.vTokenAmount != 0 && pool.tokenAmount != 0, "Not ready");
+        if (pool.vTokenAmount == 0 || pool.tokenAmount == 0) {
+            revert PoolNotReady();
+        }
         uint256 redeemFee = (rateInfo.redeemRate * _vTokenAmount) / 10000;
         uint256 vTokenAmountExcludingFee = _vTokenAmount - redeemFee;
         uint256 tokenAmount = (vTokenAmountExcludingFee * pool.tokenAmount) / pool.vTokenAmount;
@@ -111,23 +115,23 @@ contract Oracle is IIsmpModule, Ownable, Pausable {
         poolInfo[token].vTokenAmount = vtokenAmount;
     }
 
-    function onPostResponse(IncomingPostResponse memory _incoming) external view override onlyIsmpHost {
-        revert("Not implemented");
+    function onPostResponse(IncomingPostResponse memory) external view override onlyIsmpHost {
+        revert NotImplemented();
     }
 
-    function onGetResponse(IncomingGetResponse memory _incoming) external view override onlyIsmpHost {
-        revert("Not implemented");
+    function onGetResponse(IncomingGetResponse memory) external view override onlyIsmpHost {
+        revert NotImplemented();
     }
 
-    function onPostRequestTimeout(PostRequest memory _request) external view override onlyIsmpHost {
-        revert("Not implemented");
+    function onPostRequestTimeout(PostRequest memory) external view override onlyIsmpHost {
+        revert NotImplemented();
     }
 
-    function onPostResponseTimeout(PostResponse memory _response) external view override onlyIsmpHost {
-        revert("Not implemented");
+    function onPostResponseTimeout(PostResponse memory) external view override onlyIsmpHost {
+        revert NotImplemented();
     }
 
-    function onGetTimeout(GetRequest memory _request) external view override onlyIsmpHost {
-        revert("Not implemented");
+    function onGetTimeout(GetRequest memory) external view override onlyIsmpHost {
+        revert NotImplemented();
     }
 }
