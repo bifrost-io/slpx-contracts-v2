@@ -2,7 +2,6 @@
 pragma solidity ^0.8.24;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {
     IIsmpModule,
     IncomingPostRequest,
@@ -13,7 +12,7 @@ import {
     GetRequest
 } from "@polytope-labs/ismp-solidity/interfaces/IIsmpModule.sol";
 
-contract Oracle is IIsmpModule, Ownable, Pausable {
+contract Oracle is IIsmpModule, Ownable {
     // =================== Constants ===================
     /// @notice Bifrost chain ID
     bytes private constant BIFROST_CHAIN_ID = bytes("2030");
@@ -53,16 +52,8 @@ contract Oracle is IIsmpModule, Ownable, Pausable {
         _;
     }
 
-    constructor(address hostAddress) Ownable(msg.sender) Pausable() {
+    constructor(address hostAddress) Ownable(msg.sender) {
         _host = hostAddress;
-    }
-
-    function pause() external onlyOwner {
-        _pause();
-    }
-
-    function unpause() external onlyOwner {
-        _unpause();
     }
 
     /// Bifrost will set a fee and the data will be consistent with Bifrost Chain.
@@ -72,7 +63,7 @@ contract Oracle is IIsmpModule, Ownable, Pausable {
     }
 
     /// Get vToken by token.
-    function getVTokenAmountByToken(address _token, uint256 _tokenAmount) public view whenNotPaused returns (uint256) {
+    function getVTokenAmountByToken(address _token, uint256 _tokenAmount) public view returns (uint256) {
         PoolInfo memory pool = poolInfo[_token];
         if (pool.vTokenAmount == 0 || pool.tokenAmount == 0) {
             revert PoolNotReady();
@@ -84,12 +75,7 @@ contract Oracle is IIsmpModule, Ownable, Pausable {
     }
 
     /// Get token by vToken.
-    function getTokenAmountByVToken(address _token, uint256 _vTokenAmount)
-        public
-        view
-        whenNotPaused
-        returns (uint256)
-    {
+    function getTokenAmountByVToken(address _token, uint256 _vTokenAmount) public view returns (uint256) {
         PoolInfo memory pool = poolInfo[_token];
         if (pool.vTokenAmount == 0 || pool.tokenAmount == 0) {
             revert PoolNotReady();
