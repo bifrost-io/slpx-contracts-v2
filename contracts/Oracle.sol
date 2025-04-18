@@ -20,21 +20,28 @@ contract Oracle is IIsmpModule, Ownable {
     /// @notice Bifrost SLPX pallet identifier
     bytes private constant BIFROST_SLPX = bytes("bif-slpx");
 
+    /// @notice Fee denominator
+    uint16 private constant FEE_DENOMINATOR = 10000;
+
     struct PoolInfo {
         uint256 tokenAmount;
         uint256 vTokenAmount;
     }
 
-    struct RateInfo {
-        uint8 mintRate;
-        uint8 redeemRate;
+    struct FeeRateInfo {
+        uint16 mintFeeRate;
+        uint16 redeemFeeRate;
     }
 
-    RateInfo public rateInfo;
+    FeeRateInfo public feeRateInfo;
 
     mapping(address => PoolInfo) public poolInfo;
 
     address private _host;
+
+    // =================== Events ===================
+    /// @notice Emitted when fee rates are changed
+    event FeeRateChanged(uint16 oldMintFeeRate, uint16 oldRedeemFeeRate, uint16 newMintFeeRate, uint16 newRedeemFeeRate);
 
     /// @notice Throws if the caller is not the ISMP host.
     error NotIsmpHost();
@@ -44,6 +51,8 @@ contract Oracle is IIsmpModule, Ownable {
     error PoolNotReady();
     /// @notice Throws if the function is not implemented
     error NotImplemented();
+    /// @notice Throws if the fee rate is invalid
+    error InvalidFeeRate();
 
     modifier onlyIsmpHost() {
         if (_msgSender() != _host) {
@@ -57,9 +66,18 @@ contract Oracle is IIsmpModule, Ownable {
     }
 
     /// Bifrost will set a fee and the data will be consistent with Bifrost Chain.
-    function setRate(uint8 _mintRate, uint8 _redeemRate) external onlyOwner {
-        rateInfo.mintRate = _mintRate;
-        rateInfo.redeemRate = _redeemRate;
+    function setFeeRate(uint16 _mintFeeRate, uint16 _redeemFeeRate) external onlyOwner {
+        if (_mintFeeRate > FEE_DENOMINATOR || _redeemFeeRate > FEE_DENOMINATOR) {
+            revert InvalidFeeRate();
+        }
+        uint16 oldMintFeeRate = feeRateInfo.mintFeeRate;
+        uint16 oldRedeemFeeRate = feeRateInfo.redeemFeeRate;
+        if (oldMintFeeRate == _mintFeeRate && oldRedeemFeeRate == _redeemFeeRate) {
+            revert InvalidFeeRate();
+        }
+        feeRateInfo.mintFeeRate = _mintFeeRate;
+        feeRateInfo.redeemFeeRate = _redeemFeeRate;
+        emit FeeRateChanged(oldMintFeeRate, oldRedeemFeeRate, _mintFeeRate, _redeemFeeRate);
     }
 
     /// Get vToken by token.
@@ -68,7 +86,7 @@ contract Oracle is IIsmpModule, Ownable {
         if (pool.vTokenAmount == 0 || pool.tokenAmount == 0) {
             revert PoolNotReady();
         }
-        uint256 mintFee = (rateInfo.mintRate * _tokenAmount) / 10000;
+        uint256 mintFee = (_tokenAmount * feeRateInfo.mintFeeRate) / FEE_DENOMINATOR;
         uint256 tokenAmountExcludingFee = _tokenAmount - mintFee;
         uint256 vTokenAmount = (tokenAmountExcludingFee * pool.vTokenAmount) / pool.tokenAmount;
         return vTokenAmount;
@@ -80,7 +98,7 @@ contract Oracle is IIsmpModule, Ownable {
         if (pool.vTokenAmount == 0 || pool.tokenAmount == 0) {
             revert PoolNotReady();
         }
-        uint256 redeemFee = (rateInfo.redeemRate * _vTokenAmount) / 10000;
+        uint256 redeemFee = (_vTokenAmount * feeRateInfo.redeemFeeRate) / FEE_DENOMINATOR;
         uint256 vTokenAmountExcludingFee = _vTokenAmount - redeemFee;
         uint256 tokenAmount = (vTokenAmountExcludingFee * pool.tokenAmount) / pool.vTokenAmount;
         return tokenAmount;
