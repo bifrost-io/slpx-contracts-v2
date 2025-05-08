@@ -35,68 +35,46 @@ const config: HardhatUserConfig = {
     manta: {
       url: "https://pacific-rpc.manta.network/http",
       chainId: 169,
-      accounts:
-          process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
     ethereum: {
-      url: "https://ethereum-rpc.publicnode.com",
+      url: process.env.ETHEREUM_RPC_URL || "https://ethereum-rpc.publicnode.com",
       chainId: 1,
-      accounts:
-          process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     }, 
     optimistic: {
-      url: "https://optimism-rpc.publicnode.com",
+      url: process.env.OPTIMISM_RPC_URL || "https://optimism-rpc.publicnode.com",
       chainId: 10,
-      accounts:
-          process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
     arbitrum: {
-      url: "https://arbitrum-one.public.blastapi.io",
+      url: process.env.ARBITRUM_RPC_URL || "https://arbitrum-one.public.blastapi.io",
       chainId: 42161,
-      accounts:
-          process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
     bsc: {
-      url: "https://bsc-mainnet.public.blastapi.io",
+      url: process.env.BSC_RPC_URL || "https://bsc-mainnet.public.blastapi.io",
       chainId: 56,
-      accounts:
-          process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
     base: {
-      url: "https://mainnet.base.org",
+      url: process.env.BASE_RPC_URL || "https://mainnet.base.org",
       chainId: 8453,
-      accounts:
-          process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
     base_testnet: {
       url: "https://sepolia.base.org",
       chainId: 84532,
-      accounts:
-          process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
     soneium: {
       url: "https://rpc.soneium.org",
       chainId: 1868,
-      accounts:
-          process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
     astar: {
-      url: "https://evm.astar.network",
+      url: process.env.ASTAR_RPC_URL || "https://evm.astar.network",
       chainId: 592,
-      accounts:
-          process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
     moonbeam: {
-      url: "https://rpc.api.moonbeam.network",
+      url: process.env.MOONBEAM_RPC_URL || "https://rpc.api.moonbeam.network",
       chainId: 1284,
-      accounts:
-          process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
     moonriver: {
-      url: "https://moonriver.unitedbloc.com:2000",
+      url: process.env.MOONRIVER_RPC_URL || "https://moonriver.unitedbloc.com:2000",
       chainId: 1285,
-      accounts:
-          process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
   },
   etherscan: {
