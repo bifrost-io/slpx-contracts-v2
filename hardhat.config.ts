@@ -98,6 +98,18 @@ const config: HardhatUserConfig = {
       accounts:
           process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
+    base_local: {
+      url: "http://localhost:8545",
+      chainId: 8453,
+      accounts:
+          process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+    },
+    base_testnet_local: {
+      url: "http://localhost:8545",
+      chainId: 84532,
+      accounts:
+          process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+    },
   },
   etherscan: {
     apiKey: {
