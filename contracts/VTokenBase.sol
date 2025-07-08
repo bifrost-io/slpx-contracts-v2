@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
@@ -11,8 +12,10 @@ import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Own
 import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import {ERC165Upgradeable} from "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol";
 import {Oracle} from "./Oracle.sol";
+import {ITokenGateway, TeleportParams} from "./interfaces/ITokenGateway.sol";
 import {IDispatcher, DispatchPost} from "@polytope-labs/ismp-solidity/interfaces/IDispatcher.sol";
 import {StateMachine} from "@polytope-labs/ismp-solidity/interfaces/StateMachine.sol";
+import {BridgeVault} from "./BridgeVault.sol";
 
 abstract contract VTokenBase is
     Initializable,
@@ -25,33 +28,35 @@ abstract contract VTokenBase is
     using SafeERC20 for IERC20;
 
     // =================== Type declarations ===================
-    /// @notice Async operation type
-    enum AsyncOperation {
-        MINT,
-        REDEEM
-    }
-
     /// @notice Redeem request structure
-    struct RedeemRequest {
-        address receiver;
-        uint256 assets;
-        uint256 startTime;
+    struct Withdrawal {
+        uint256 queued;
+        uint256 pending;
     }
 
     // =================== Constants ===================
-    /// @notice Bifrost SLPX pallet identifier
-    bytes private constant BIFROST_SLPX = bytes("bif-slpx");
 
-    /// @notice Bifrost chain ID
-    uint256 private constant BIFROST_CHAIN_ID = 2030;
+    /// @notice Bifrost Token Gateway
+    bytes32 private constant BIFROST_TOKEN_GATEWAY = 0x6d6f646ca09b1c60e86502450000000000000000000000000000000000000000;
 
     // =================== State variables ===================
     /// @notice mapping of admins of defined roles
     mapping(address => bool) public rolesAdmin;
 
+    /// @notice Token gateway
+    ITokenGateway public tokenGateway;
+
+    /// @notice Bridge vault
+    BridgeVault public bridgeVault;
+
+    /// @notice Oracle
     Oracle public oracle;
 
-    IDispatcher public dispatcher;
+    /// @notice Trigger address
+    address public triggerAddress;
+
+    /// @notice Bifrost destination
+    bytes public bifrostDest;
 
     /// @notice Current cycle minted VToken amount
     uint256 public currentCycleMintVTokenAmount;
@@ -62,23 +67,15 @@ abstract contract VTokenBase is
     /// @notice Current cycle redeemed Token amount
     uint256 public currentCycleRedeemVTokenAmount;
 
-    /// @notice Trigger address
-    address public triggerAddress;
+    /// @notice Queued claim amount
+    uint256 public queuedWithdrawal;
 
-    /// @notice Redeem request mapping
-    mapping(uint256 => RedeemRequest) public redeemQueue;
+    /// @notice Completed claim amount
+    uint256 public completedWithdrawal;
 
-    /// @notice Next request ID
-    uint256 public nextRequestId;
+    /// @notice Withdraw queue mapping
+    mapping(address => Withdrawal) public withdrawals;
 
-    /// @notice Current processing index of redeem queue
-    uint256 public redeemQueueIndex;
-
-    /// @notice Maximum number of redeem requests per user
-    uint256 public maxRedeemRequestsPerUser;
-
-    /// @notice User redeem request index mapping
-    mapping(address => uint256[]) public userRedeemRequests;
 
     // =================== Events ===================
     /// @notice Emitted when role admin is changed
@@ -90,11 +87,11 @@ abstract contract VTokenBase is
     /// @notice Emitted when Oracle contract is changed
     event OracleChanged(address indexed oldOracle, address indexed newOracle);
 
-    /// @notice Emitted when Dispatcher contract is changed
-    event DispatcherChanged(address indexed oldDispatcher, address indexed newDispatcher);
+    /// @notice Emitted when TokenGateway contract is changed
+    event TokenGatewayChanged(address indexed oldTokenGateway, address indexed newTokenGateway);
 
-    /// @notice Emitted when batch claim is processed
-    event BatchClaimProcessed(uint256 startIndex, uint256 endIndex, uint256 processedCount);
+    /// @notice Emitted when Bifrost destination is changed
+    event BifrostDestChanged(bytes oldBifrostDest, bytes newBifrostDest);
 
     /// @notice Emitted when async mint operation is completed
     event AsyncMintCompleted(uint256 tokenAmount, uint256 vTokenAmount);
@@ -102,13 +99,11 @@ abstract contract VTokenBase is
     /// @notice Emitted when async redeem operation is completed
     event AsyncRedeemCompleted(uint256 vTokenAmount);
 
-    /// @notice Emitted when max redeem requests per user is changed
-    event MaxRedeemRequestsPerUserChanged(uint256 oldLimit, uint256 newLimit);
+    /// @notice Emitted when BridgeVault contract is changed
+    event BridgeVaultChanged(address indexed oldBridgeVault, address indexed newBridgeVault);
 
-    /// @notice Emitted when a redeem request is successfully processed
-    event RedeemRequestSuccess(
-        uint256 indexed requestId, address indexed receiver, uint256 assets, uint256 startTime, uint256 endTime
-    );
+    /// @notice Emitted when a claim is successfully processed
+    event WithdrawalCompleted(address indexed receiver, uint256 tokenAmount);
 
     // =================== Errors ===================
     /// @notice Throws if the caller is not a role admin
@@ -117,17 +112,10 @@ abstract contract VTokenBase is
     /// @notice Throws if the caller is not the trigger address
     error NotTriggerAddress(address account);
 
-    /// @notice Throws if user has reached maximum redeem requests limit
-    error MaxRedeemRequestsReached(address user, uint256 currentCount, uint256 maxLimit);
+    /// @notice Throws if the token amount is greater than the pending amount
+    error ExceedPermittedAmount(uint256 tokenAmount, uint256 pendingAmount);
 
-    /// @notice Throws if the batch size is greater than the number of requests
-    error InvalidBatchSize();
-
-    /// @notice Throws if the batch size is larger than the actual available requests
-    error BatchSizeTooLarge(uint256 requestedSize, uint256 actualSize);
-
-    /// @notice Throws if the request ID is not found in the user's request list
-    error RequestIdNotFound(address user, uint256 requestId);
+    error InsufficientWithdrawAmount(uint256 tokenAmount, uint256 availableAmount);
 
     // =================== Modifiers ===================
     /// @notice Modifier: Only trigger address can call
@@ -164,16 +152,36 @@ abstract contract VTokenBase is
         emit OracleChanged(oldOracle, _oracle);
     }
 
-    function setDispatcher(address _dispatcher) external onlyOwner {
-        address oldDispatcher = address(dispatcher);
-        dispatcher = IDispatcher(_dispatcher);
-        emit DispatcherChanged(oldDispatcher, _dispatcher);
+    function setTokenGateway(address _tokenGateway) external onlyOwner {
+        address oldTokenGateway = address(tokenGateway);
+        tokenGateway = ITokenGateway(_tokenGateway);
+        emit TokenGatewayChanged(oldTokenGateway, _tokenGateway);
     }
 
-    function setMaxRedeemRequestsPerUser(uint256 _maxRedeemRequestsPerUser) external onlyOwner {
-        uint256 oldLimit = maxRedeemRequestsPerUser;
-        maxRedeemRequestsPerUser = _maxRedeemRequestsPerUser;
-        emit MaxRedeemRequestsPerUserChanged(oldLimit, _maxRedeemRequestsPerUser);
+    function setBifrostDest(bytes memory _bifrostDest) external onlyOwner {
+        bytes memory oldBifrostDest = bifrostDest;
+        bifrostDest = _bifrostDest;
+        emit BifrostDestChanged(oldBifrostDest, _bifrostDest);
+    }
+
+    function setTriggerAddress(address _triggerAddress) external onlyOwner {
+        address oldAddress = triggerAddress;
+        triggerAddress = _triggerAddress;
+        emit TriggerAddressChanged(oldAddress, _triggerAddress);
+    }
+
+    function setBridgeVault(address payable _bridgeVault) external onlyOwner {
+        address oldBridgeVault = address(bridgeVault);
+        bridgeVault = BridgeVault(_bridgeVault);
+        emit BridgeVaultChanged(oldBridgeVault, _bridgeVault);
+    }
+
+    function approveTokenGateway(address token) external onlyOwner {
+        IERC20(token).approve(address(tokenGateway), type(uint256).max);
+    }
+
+    function withdrawFeeToken(address token, uint256 amount, address to) external onlyOwner {
+        IERC20(token).safeTransfer(to, amount);
     }
 
     function pause() external onlyOwner {
@@ -189,98 +197,83 @@ abstract contract VTokenBase is
         emit RoleAdminChanged(_account, _isAdmin);
     }
 
-    function setTriggerAddress(address _triggerAddress) external onlyOwner {
-        address oldAddress = triggerAddress;
-        triggerAddress = _triggerAddress;
-        emit TriggerAddressChanged(oldAddress, _triggerAddress);
-    }
-
-    function asyncMint() external onlyTriggerAddress {
-        // burn currentCycleMintTokenAmount
-        _burn(address(this), currentCycleMintTokenAmount);
-
-        // Send mint request to Bifrost
-        DispatchPost memory post = DispatchPost({
-            body: abi.encode(block.chainid, AsyncOperation.MINT, currentCycleMintTokenAmount, currentCycleMintVTokenAmount),
-            dest: StateMachine.polkadot(BIFROST_CHAIN_ID),
-            timeout: 0,
-            to: BIFROST_SLPX,
-            fee: 0,
-            payer: _msgSender()
+    function asyncMint(uint256 relayerFee, uint64 timeout) external payable onlyTriggerAddress {
+        bytes memory data = abi.encode(uint32(block.chainid), currentCycleMintVTokenAmount);
+        bytes32 assetId = keccak256(bytes(ERC20(asset()).symbol()));
+        TeleportParams memory params = TeleportParams({
+            amount: currentCycleMintTokenAmount, 
+            relayerFee: relayerFee,
+            assetId: assetId,
+            redeem: true,
+            to: BIFROST_TOKEN_GATEWAY,
+            dest: bifrostDest,  
+            timeout: timeout, 
+            nativeCost: 0,
+            data: data
         });
-        dispatcher.dispatch(post);
+        tokenGateway.teleport(params);
 
+        emit AsyncMintCompleted(currentCycleMintTokenAmount, currentCycleMintVTokenAmount);
         // reset currentCycleMintVTokenAmount and currentCycleMintTokenAmount
-        uint256 tokenAmount = currentCycleMintTokenAmount;
-        uint256 vTokenAmount = currentCycleMintVTokenAmount;
         currentCycleMintVTokenAmount = 0;
         currentCycleMintTokenAmount = 0;
-
-        emit AsyncMintCompleted(tokenAmount, vTokenAmount);
     }
 
-    function asyncRedeem() external onlyTriggerAddress {
+    function asyncRedeem(uint256 relayerFee, uint64 timeout, bytes32 to, bytes memory data) external payable onlyTriggerAddress {
         // Send redeem request to Bifrost
-        DispatchPost memory post = DispatchPost({
-            body: abi.encode(block.chainid, AsyncOperation.REDEEM, currentCycleRedeemVTokenAmount),
-            dest: StateMachine.polkadot(BIFROST_CHAIN_ID),
-            timeout: 0,
-            to: BIFROST_SLPX,
-            fee: 0,
-            payer: _msgSender()
+        bytes32 assetId = keccak256(bytes(symbol()));
+        TeleportParams memory params = TeleportParams({
+            amount: currentCycleRedeemVTokenAmount, 
+            relayerFee: relayerFee,
+            assetId: assetId,
+            redeem: true,
+            to: to,
+            dest: bifrostDest,  
+            timeout: timeout, 
+            nativeCost: 0,
+            data: data
         });
-        dispatcher.dispatch(post);
-
-        // reset currentCycleRedeemVTokenAmount
-        uint256 vTokenAmount = currentCycleRedeemVTokenAmount;
+        tokenGateway.teleport(params);
+        emit AsyncRedeemCompleted(currentCycleRedeemVTokenAmount);
         currentCycleRedeemVTokenAmount = 0;
-
-        emit AsyncRedeemCompleted(vTokenAmount);
     }
 
-    function batchClaim(uint256 batchSize) external onlyTriggerAddress {
-        if (redeemQueueIndex >= nextRequestId) {
-            revert InvalidBatchSize();
+    function withdrawComplete(uint256 amount) external {
+        Withdrawal storage withdrawal = withdrawals[msg.sender]; 
+        if (amount == 0) {
+            // withdraw total pending amount
+            amount = withdrawal.pending;
+        }
+        if (amount > withdrawal.pending) {
+            revert ExceedPermittedAmount(amount, withdrawal.pending);
+        }
+        if(amount > canWithdrawalAmount(msg.sender)) {
+            revert InsufficientWithdrawAmount(amount, canWithdrawalAmount(msg.sender));
+        }
+        withdrawal.pending -= amount;
+        withdrawal.queued += amount;
+        completedWithdrawal += amount;
+        bridgeVault.withdrawToken(address(asset()), msg.sender, amount);
+        emit WithdrawalCompleted(msg.sender, amount);
+    }
+
+    function getTotalBalance() public view returns (uint256) {
+        return bridgeVault.getBalance(address(asset())) + completedWithdrawal;
+    }
+
+    function canWithdrawalAmount(address target) public view returns (uint256) {
+        Withdrawal memory withdrawal = withdrawals[target];
+
+        uint256 totalBalance = getTotalBalance();
+        uint256 vaultBalance = bridgeVault.getBalance(address(asset()));
+        if (totalBalance <= withdrawal.queued) {
+            return 0;
         }
 
-        // Calculate actual batch size
-        uint256 actualBatchSize = nextRequestId - redeemQueueIndex;
-        if (batchSize > actualBatchSize) {
-            revert BatchSizeTooLarge(batchSize, actualBatchSize);
-        }
+        uint256 availableAmount = totalBalance - withdrawal.queued;
+        availableAmount = vaultBalance < availableAmount ? vaultBalance : availableAmount;
 
-        // Process redeem requests
-        for (uint256 i = redeemQueueIndex; i < redeemQueueIndex + batchSize; i++) {
-            RedeemRequest memory request = redeemQueue[i];
-            if (request.assets > 0) {
-                // Check if already processed
-                // Remove index from userRedeemRequests
-                uint256[] storage userRequests = userRedeemRequests[request.receiver];
-                bool found = false;
-                for (uint256 j = 0; j < userRequests.length; j++) {
-                    if (userRequests[j] == i) {
-                        // Move last element to current position and remove last element
-                        userRequests[j] = userRequests[userRequests.length - 1];
-                        userRequests.pop();
-                        found = true;
-                        break;
-                    }
-                }
-                if (!found) {
-                    revert RequestIdNotFound(request.receiver, i);
-                }
-                SafeERC20.safeTransfer(IERC20(asset()), request.receiver, request.assets);
-                // Mark as processed
-                delete redeemQueue[i];
-                // Emit success event
-                emit RedeemRequestSuccess(i, request.receiver, request.assets, request.startTime, block.timestamp);
-            }
-        }
-
-        // Update processing index
-        redeemQueueIndex += batchSize;
-
-        emit BatchClaimProcessed(redeemQueueIndex - batchSize, redeemQueueIndex, batchSize);
+        return withdrawal.pending < availableAmount ? withdrawal.pending : availableAmount;
     }
 
     // =================== ERC4626 functions ===================
@@ -348,35 +341,22 @@ abstract contract VTokenBase is
         virtual
         override
     {
-        if (caller != owner) {
+         if (caller != owner) {
             _spendAllowance(owner, caller, shares);
         }
 
-        // Check if user has reached maximum redeem requests limit
-        if (maxRedeemRequestsPerUser > 0 && userRedeemRequests[owner].length >= maxRedeemRequestsPerUser) {
-            revert MaxRedeemRequestsReached(owner, userRedeemRequests[owner].length, maxRedeemRequestsPerUser);
-        }
-
         _burn(owner, shares);
+        _mint(address(this), shares);
 
-        // Create redeem request
-        uint256 requestId = nextRequestId;
-        redeemQueue[requestId] = RedeemRequest({receiver: receiver, assets: assets, startTime: block.timestamp});
-        userRedeemRequests[owner].push(requestId);
-        nextRequestId++;
-
+        // Update withdrawal info
+        Withdrawal storage withdrawal = withdrawals[caller];
+        withdrawal.queued  = queuedWithdrawal - withdrawal.pending;
+        withdrawal.pending = withdrawal.pending + assets;
+        queuedWithdrawal += assets;
+        // Update current cycle redeem amounts
         currentCycleRedeemVTokenAmount += shares;
 
         emit Withdraw(caller, receiver, owner, assets, shares);
-    }
-
-    function getUserRedeemRequests(address user) public view returns (RedeemRequest[] memory) {
-        uint256[] memory requestIds = userRedeemRequests[user];
-        RedeemRequest[] memory requests = new RedeemRequest[](requestIds.length);
-        for (uint256 i = 0; i < requestIds.length; i++) {
-            requests[i] = redeemQueue[requestIds[i]];
-        }
-        return requests;
     }
 
     // =================== ERC6160 functions ===================

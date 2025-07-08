@@ -1,326 +1,619 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.24;
 
-import "forge-std/Test.sol";
-import "../contracts/VTokenBase.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@polytope-labs/ismp-solidity/interfaces/IDispatcher.sol";
+import {Test, console} from "forge-std/Test.sol";
+import {VTokenBase} from "../contracts/VTokenBase.sol";
+import {BridgeVault} from "../contracts/BridgeVault.sol";
+import {Oracle} from "../contracts/Oracle.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
+import {ITokenGateway, TeleportParams} from "../contracts/interfaces/ITokenGateway.sol";
+import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 
-contract MockERC20 is ERC20 {
+contract MockToken is ERC20 {
     constructor() ERC20("Mock Token", "MTK") {
-        _mint(msg.sender, 1000000 ether);
+        _mint(msg.sender, 1000000 * 10**decimals());
+    }
+    
+    function mint(address to, uint256 amount) external {
+        _mint(to, amount);
     }
 }
 
-contract MockOracle {
-    function getPrice() external pure returns (uint256) {
-        return 1 ether;
+contract MockVToken is VTokenBase {
+    function initialize(IERC20 asset, address owner, string memory name, string memory symbol) public initializer {
+        __VTokenBase_init(asset, owner, name, symbol);
     }
 }
 
-contract MockDispatcher is IDispatcher {
-    function dispatch(DispatchPost memory post) external payable override returns (bytes32) {
-        return bytes32(0);
-    }
-
-    function dispatch(DispatchGet memory request) external payable override returns (bytes32) {
-        return bytes32(0);
-    }
-
-    function dispatch(DispatchPostResponse memory response) external payable override returns (bytes32) {
-        return bytes32(0);
-    }
-
-    function feeToken() external view override returns (address) {
-        return address(0);
-    }
-
-    function fundRequest(bytes32 commitment, uint256 amount) external payable override {
-        // Do nothing
-    }
-
-    function fundResponse(bytes32 commitment, uint256 amount) external payable override {
-        // Do nothing
-    }
-
-    function nonce() external view override returns (uint256) {
-        return 0;
-    }
-
-    function perByteFee(bytes memory dest) external view override returns (uint256) {
-        return 0;
-    }
-
-    function uniswapV2Router() external view override returns (address) {
-        return address(0);
+contract MockTokenGateway is ITokenGateway {
+    function teleport(TeleportParams calldata params) external payable {
+        // Mock implementation
     }
 }
 
-contract TestVToken is VTokenBase {
-    function initialize(
-        address _asset,
-        string memory _name,
-        string memory _symbol,
-        address _oracle,
-        address _dispatcher
-    ) public initializer {
-        __VTokenBase_init(IERC20(_asset), msg.sender, _name, _symbol);
-
-        oracle = Oracle(_oracle);
-        dispatcher = IDispatcher(_dispatcher);
+contract TestOracle is Oracle {
+    constructor(address host) Oracle(host) {}
+    function setPoolInfo(address token, uint256 tokenAmount, uint256 vTokenAmount) external {
+        poolInfo[token] = PoolInfo({tokenAmount: tokenAmount, vTokenAmount: vTokenAmount});
     }
 }
 
 contract VTokenBaseTest is Test {
-    TestVToken public vToken;
-    MockERC20 public underlyingToken;
-    MockOracle public oracle;
-    MockDispatcher public dispatcher;
-
-    address public owner = address(1);
-    address public user = address(2);
-    address public triggerAddress = address(3);
-
+    MockVToken public vToken;
+    BridgeVault public bridgeVault;
+    MockToken public mockToken;
+    Oracle public oracle;
+    MockTokenGateway public tokenGateway;
+    
+    address public owner;
+    address public triggerAddress;
+    address public user1;
+    address public user2;
+    address public user3;
+    
+    event WithdrawCompleteCompleted(address indexed receiver, uint256 tokenAmount);
+    event AsyncMintCompleted(uint256 tokenAmount, uint256 vTokenAmount);
+    event AsyncRedeemCompleted(uint256 vTokenAmount);
+    
     function setUp() public {
-        // Deploy mock contracts
-        underlyingToken = new MockERC20();
-        oracle = new MockOracle();
-        dispatcher = new MockDispatcher();
-
-        // Deploy VTokenBase
-        vToken = new TestVToken();
-
-        // Initialize with owner
-        vm.prank(owner);
-        vToken.initialize(address(underlyingToken), "VToken", "VTK", address(oracle), address(dispatcher));
-
-        // Setup roles
-        vm.prank(owner);
+        owner = makeAddr("owner");
+        triggerAddress = makeAddr("trigger");
+        user1 = makeAddr("user1");
+        user2 = makeAddr("user2");
+        user3 = makeAddr("user3");
+        
+        vm.startPrank(owner);
+        
+        // Deploy contracts
+        mockToken = new MockToken();
+        bridgeVault = new BridgeVault();
+        bridgeVault.initialize(owner);
+        oracle = new TestOracle(address(this));
+        tokenGateway = new MockTokenGateway();
+        
+        // Deploy VToken
+        vToken = new MockVToken();
+        vToken.initialize(mockToken, owner, "Mock VToken", "mvMTK");
+        
+        // Setup VToken
+        vToken.setBridgeVault(payable(address(bridgeVault)));
+        vToken.setOracle(address(oracle));
+        vToken.setTokenGateway(address(tokenGateway));
         vToken.setTriggerAddress(triggerAddress);
-
-        // Unpause the contract
-        vm.prank(owner);
+        vToken.setBifrostDest("0x1234567890abcdef");
         vToken.unpause();
-
-        // Transfer tokens to user
-        underlyingToken.transfer(user, 1000 ether);
-
-        // Approve VToken to spend user's tokens
-        vm.prank(user);
-        underlyingToken.approve(address(vToken), type(uint256).max);
+        vToken.changeRoleAdmin(address(this), true);
+        
+        // Add VToken to BridgeVault
+        bridgeVault.addVTokenAddress(address(vToken));
+        
+        // Setup Oracle with pool info
+        oracle.setFeeRate(0, 0); // 1% fee
+        TestOracle(address(oracle)).setPoolInfo(address(mockToken), 1000000 * 10**18, 1000000 * 10**18);
+        vm.stopPrank();
     }
-
-    function test_Initialize() public {
-        assertEq(vToken.name(), "VToken");
-        assertEq(vToken.symbol(), "VTK");
-        assertEq(address(vToken.oracle()), address(oracle));
-        assertEq(address(vToken.dispatcher()), address(dispatcher));
+    
+    function test_Initialization() public {
         assertEq(vToken.owner(), owner);
         assertEq(vToken.triggerAddress(), triggerAddress);
+        assertEq(address(vToken.bridgeVault()), address(bridgeVault));
+        assertEq(address(vToken.oracle()), address(oracle));
+        assertEq(address(vToken.tokenGateway()), address(tokenGateway));
         assertFalse(vToken.paused());
     }
+    
+    function test_Deposit() public {
+        uint256 initAmount = 1000;
+        mockToken.mint(user1, initAmount);
+        
+        uint256 depositAmount = 100;
+        vm.startPrank(user1);
+        mockToken.approve(address(vToken), depositAmount);
+        uint256 vTokenAmount = vToken.deposit(depositAmount, user1);
+   
+        assertEq(vToken.balanceOf(user1), vTokenAmount);
+        assertEq(mockToken.balanceOf(address(vToken)), depositAmount);
+        assertEq(mockToken.balanceOf(user1), initAmount - depositAmount);
+        assertEq(vToken.currentCycleMintTokenAmount(), depositAmount);
+        assertEq(vToken.currentCycleMintVTokenAmount(), vTokenAmount);
 
-    function test_SetOracle() public {
-        // Setup
-        address newOracle = address(0x1234);
+        mockToken.approve(address(vToken), depositAmount);
+        uint256 vTokenAmount2 = vToken.deposit(depositAmount, user1);
+        assertEq(vToken.balanceOf(user1), vTokenAmount + vTokenAmount2);
+        assertEq(mockToken.balanceOf(address(vToken)), depositAmount * 2);
+        assertEq(mockToken.balanceOf(user1), initAmount - depositAmount * 2);
+        assertEq(vToken.currentCycleMintTokenAmount(), depositAmount * 2);
+        assertEq(vToken.currentCycleMintVTokenAmount(), vTokenAmount + vTokenAmount2);
+        vm.stopPrank();
+    }
+    
+    function test_Mint() public {
+        uint256 initAmount = 1000;
+        mockToken.mint(user1, initAmount);
+        uint256 mintAmount = 100;
+        vm.startPrank(user1);
+        mockToken.approve(address(vToken), mintAmount);
+        uint256 tokenAmount = vToken.mint(mintAmount, user1);
+        assertEq(vToken.balanceOf(user1), mintAmount);
+        assertEq(mockToken.balanceOf(address(vToken)), tokenAmount);
+        assertEq(mockToken.balanceOf(user1), initAmount - tokenAmount);
+        assertEq(vToken.currentCycleMintTokenAmount(), tokenAmount);
+        assertEq(vToken.currentCycleMintVTokenAmount(), mintAmount);
 
-        // Test: Only owner can set oracle
-        vm.prank(owner);
-        vToken.setOracle(newOracle);
-        assertEq(address(vToken.oracle()), newOracle);
+        mockToken.approve(address(vToken), mintAmount);
+        uint256 tokenAmount2 = vToken.mint(mintAmount, user1);
+        assertEq(vToken.balanceOf(user1), mintAmount * 2);
+        assertEq(mockToken.balanceOf(address(vToken)), tokenAmount + tokenAmount2);
+        assertEq(mockToken.balanceOf(user1), initAmount - tokenAmount - tokenAmount2);
+        assertEq(vToken.currentCycleMintTokenAmount(), tokenAmount + tokenAmount2);
+        assertEq(vToken.currentCycleMintVTokenAmount(), mintAmount * 2);
+        vm.stopPrank();
+    }
+    
+    function test_Redeem() public {
+        uint256 depositAmount = 1000;
+        uint256 redeemAmount = 100;
+        vToken.mint(user1, depositAmount);
+        vToken.mint(user2, depositAmount);
+        vToken.mint(user3, depositAmount);
 
-        // Test: Non-owner cannot set oracle
-        vm.prank(user);
-        vm.expectRevert(abi.encodeWithSignature("OwnableUnauthorizedAccount(address)", user));
-        vToken.setOracle(newOracle);
+        vm.prank(user1);
+        vToken.redeem(redeemAmount, user1, user1);
+        (uint256 queued, uint256 pending) = vToken.withdrawals(user1);
+        assertEq(queued, 0);
+        assertEq(pending, redeemAmount);
+        assertEq(vToken.currentCycleRedeemVTokenAmount(), redeemAmount);
+        assertEq(vToken.balanceOf(address(vToken)), redeemAmount);
+        assertEq(vToken.balanceOf(user1), depositAmount - redeemAmount);
+        assertEq(vToken.queuedWithdrawal(), redeemAmount);
+
+        vm.prank(user2);
+        vToken.redeem(redeemAmount, user2, user2);
+        (queued, pending) = vToken.withdrawals(user2);
+        assertEq(queued, redeemAmount);
+        assertEq(pending, redeemAmount);
+        assertEq(vToken.currentCycleRedeemVTokenAmount(), redeemAmount * 2);
+        assertEq(vToken.balanceOf(address(vToken)), redeemAmount * 2);
+        assertEq(vToken.balanceOf(user2), depositAmount - redeemAmount);
+        assertEq(vToken.queuedWithdrawal(), redeemAmount * 2);
+
+        vm.prank(user3);
+        vToken.redeem(redeemAmount, user3, user3); 
+        (queued, pending) = vToken.withdrawals(user3);
+        assertEq(queued, redeemAmount * 2);
+        assertEq(pending, redeemAmount);
+        assertEq(vToken.currentCycleRedeemVTokenAmount(), redeemAmount * 3);
+        assertEq(vToken.balanceOf(address(vToken)), redeemAmount * 3);
+        assertEq(vToken.balanceOf(user3), depositAmount - redeemAmount);
+        assertEq(vToken.queuedWithdrawal(), redeemAmount * 3);
+
+        vm.prank(user1);
+        vToken.redeem(redeemAmount, user1, user1);
+        (queued, pending) = vToken.withdrawals(user1);
+        assertEq(queued, redeemAmount * 2);
+        assertEq(pending, redeemAmount * 2);
+        assertEq(vToken.currentCycleRedeemVTokenAmount(), redeemAmount * 4);
+        assertEq(vToken.balanceOf(address(vToken)), redeemAmount * 4);
+        assertEq(vToken.balanceOf(user1), depositAmount - redeemAmount * 2);
+        assertEq(vToken.queuedWithdrawal(), redeemAmount * 4);
+
+        vm.prank(user2);
+        vToken.redeem(redeemAmount, user2, user2);
+        (queued, pending) = vToken.withdrawals(user2);
+        assertEq(queued, redeemAmount * 3);
+        assertEq(pending, redeemAmount * 2);
+        assertEq(vToken.currentCycleRedeemVTokenAmount(), redeemAmount * 5);
+        assertEq(vToken.balanceOf(address(vToken)), redeemAmount * 5);
+        assertEq(vToken.balanceOf(user2), depositAmount - redeemAmount * 2);
+        assertEq(vToken.queuedWithdrawal(), redeemAmount * 5);
     }
 
-    function test_SetDispatcher() public {
-        // Setup
-        address newDispatcher = address(0x1234);
 
-        // Test: Only owner can set dispatcher
-        vm.prank(owner);
-        vToken.setDispatcher(newDispatcher);
-        assertEq(address(vToken.dispatcher()), newDispatcher);
+    function test_Withdraw() public {
+        uint256 depositAmount = 1000;
+        uint256 withdrawAmount = 100;
+        vToken.mint(user1, depositAmount);
+        vToken.mint(user2, depositAmount);
+        vToken.mint(user3, depositAmount);
 
-        // Test: Non-owner cannot set dispatcher
-        vm.prank(user);
-        vm.expectRevert(abi.encodeWithSignature("OwnableUnauthorizedAccount(address)", user));
-        vToken.setDispatcher(newDispatcher);
+        vm.startPrank(user1);
+        vToken.withdraw(withdrawAmount, user1, user1);
+        (uint256 queued, uint256 pending) = vToken.withdrawals(user1);
+        assertEq(queued, 0);
+        assertEq(pending, withdrawAmount);
+        assertEq(vToken.currentCycleRedeemVTokenAmount(), withdrawAmount);
+        assertEq(vToken.balanceOf(address(vToken)), withdrawAmount);
+        assertEq(vToken.balanceOf(user1), depositAmount - withdrawAmount);
+        assertEq(vToken.queuedWithdrawal(), withdrawAmount);
+        vm.stopPrank();
+
+        vm.startPrank(user2);
+        vToken.withdraw(withdrawAmount, user2, user2);
+        (queued, pending) = vToken.withdrawals(user2);
+        assertEq(queued, withdrawAmount);
+        assertEq(pending, withdrawAmount);
+        assertEq(vToken.currentCycleRedeemVTokenAmount(), withdrawAmount * 2);
+        assertEq(vToken.balanceOf(address(vToken)), withdrawAmount * 2);
+        assertEq(vToken.balanceOf(user2), depositAmount - withdrawAmount);
+        assertEq(vToken.queuedWithdrawal(), withdrawAmount * 2);
+        vm.stopPrank();
+
+        vm.startPrank(user3);
+        vToken.withdraw(withdrawAmount, user3, user3); 
+        (queued, pending) = vToken.withdrawals(user3);
+        assertEq(queued, withdrawAmount * 2);
+        assertEq(pending, withdrawAmount);
+        assertEq(vToken.currentCycleRedeemVTokenAmount(), withdrawAmount * 3);
+        assertEq(vToken.balanceOf(address(vToken)), withdrawAmount * 3);
+        assertEq(vToken.balanceOf(user3), depositAmount - withdrawAmount);
+        assertEq(vToken.queuedWithdrawal(), withdrawAmount * 3);
+        vm.stopPrank();
+
+        vm.startPrank(user1);
+        vToken.withdraw(withdrawAmount, user1, user1);
+        (queued, pending) = vToken.withdrawals(user1);
+        assertEq(queued, withdrawAmount * 2);
+        assertEq(pending, withdrawAmount * 2);
+        assertEq(vToken.currentCycleRedeemVTokenAmount(), withdrawAmount * 4);
+        assertEq(vToken.balanceOf(address(vToken)), withdrawAmount * 4);
+        assertEq(vToken.balanceOf(user1), depositAmount - withdrawAmount * 2);
+        assertEq(vToken.queuedWithdrawal(), withdrawAmount * 4);
+        vm.stopPrank();
+
+        vm.startPrank(user2);
+        vToken.withdraw(withdrawAmount, user2, user2);
+        (queued, pending) = vToken.withdrawals(user2);
+        assertEq(queued, withdrawAmount * 3);
+        assertEq(pending, withdrawAmount * 2);
+        assertEq(vToken.currentCycleRedeemVTokenAmount(), withdrawAmount * 5);
+        assertEq(vToken.balanceOf(address(vToken)), withdrawAmount * 5);
+        assertEq(vToken.balanceOf(user2), depositAmount - withdrawAmount * 2);
+        assertEq(vToken.queuedWithdrawal(), withdrawAmount * 5);
+        vm.stopPrank();
     }
 
-    function test_SetMaxRedeemRequestsPerUser() public {
-        // Setup
-        uint256 newMaxRequests = 5;
+    // TODO:
+    function test_CanWithdrawAmount() public {
+        uint256 depositAmount = 1000;
+        uint256 withdrawAmount = 100;
+        vToken.mint(user1, depositAmount);
+        vToken.mint(user2, depositAmount);
+        vToken.mint(user3, depositAmount);
 
-        // Test: Only owner can set max redeem requests
-        vm.prank(owner);
-        vToken.setMaxRedeemRequestsPerUser(newMaxRequests);
-        assertEq(vToken.maxRedeemRequestsPerUser(), newMaxRequests);
+        // first cycle withdraw
+        vm.prank(user1);
+        vToken.withdraw(withdrawAmount, user1, user1);
+        vm.prank(user2);
+        vToken.withdraw(withdrawAmount, user2, user2);
+        vm.prank(user3);
+        vToken.withdraw(withdrawAmount, user3, user3);
 
-        // Test: Non-owner cannot set max redeem requests
-        vm.prank(user);
-        vm.expectRevert(abi.encodeWithSignature("OwnableUnauthorizedAccount(address)", user));
-        vToken.setMaxRedeemRequestsPerUser(newMaxRequests);
+        assertEq(vToken.canWithdrawalAmount(user1), 0);
+        assertEq(vToken.canWithdrawalAmount(user2), 0);
+        assertEq(vToken.canWithdrawalAmount(user3), 0);
+
+        // Mock Async Redeem Success
+        mockToken.mint(address(bridgeVault), 300);
+        assertEq(mockToken.balanceOf(address(bridgeVault)), 300);
+        assertEq(vToken.canWithdrawalAmount(user1), 100);
+        assertEq(vToken.canWithdrawalAmount(user2), 100);
+        assertEq(vToken.canWithdrawalAmount(user3), 100);
+
+        // user2 and user3 call withdrawComplete
+        vm.prank(user2);
+        vToken.withdrawComplete(100);
+        vm.prank(user3);
+        vToken.withdrawComplete(100);
+
+        assertEq(vToken.canWithdrawalAmount(user1), 100);
+        assertEq(vToken.canWithdrawalAmount(user2), 0);
+        assertEq(vToken.canWithdrawalAmount(user3), 0);
+
+
+        // second cycle withdraw
+        vm.prank(user1);
+        vToken.withdraw(withdrawAmount, user1, user1);
+        vm.prank(user2);
+        vToken.withdraw(withdrawAmount, user2, user2);
+        vm.prank(user3);
+        vToken.withdraw(withdrawAmount, user3, user3);
+
+        assertEq(vToken.canWithdrawalAmount(user1), 100);
+        assertEq(vToken.canWithdrawalAmount(user2), 0);
+        assertEq(vToken.canWithdrawalAmount(user3), 0);
+
+        // Mock Async Redeem Success
+        mockToken.mint(address(bridgeVault), 300);
+        assertEq(mockToken.balanceOf(address(bridgeVault)), 400);
+        assertEq(vToken.canWithdrawalAmount(user1), 200);
+        assertEq(vToken.canWithdrawalAmount(user2), 100);
+        assertEq(vToken.canWithdrawalAmount(user3), 100);
+
+        // user1 and user2 call withdrawComplete
+        vm.prank(user1);
+        vToken.withdrawComplete(200);
+        vm.prank(user2);
+        vToken.withdrawComplete(100);
+
+        assertEq(vToken.canWithdrawalAmount(user1), 0);
+        assertEq(vToken.canWithdrawalAmount(user2), 0);
+        assertEq(vToken.canWithdrawalAmount(user3), 100);
+
+        // Third cycle withdraw
+        vm.prank(user1);
+        vToken.withdraw(withdrawAmount, user1, user1);
+        vm.prank(user2);
+        vToken.withdraw(withdrawAmount, user2, user2);
+        vm.prank(user3);
+        vToken.withdraw(withdrawAmount, user3, user3);
+
+        assertEq(mockToken.balanceOf(address(bridgeVault)), 100);
+        assertEq(vToken.canWithdrawalAmount(user1), 0);
+        assertEq(vToken.canWithdrawalAmount(user2), 0);
+        assertEq(vToken.canWithdrawalAmount(user3), 0);
+
+
+        // Mock Async Redeem Success
+        mockToken.mint(address(bridgeVault), 300);
+        assertEq(mockToken.balanceOf(address(bridgeVault)), 400);
+        assertEq(vToken.canWithdrawalAmount(user1), 100);
+        assertEq(vToken.canWithdrawalAmount(user2), 100);
+        assertEq(vToken.canWithdrawalAmount(user3), 200);
     }
+    
+    function test_WithdrawComplete() public {
+        uint256 initAmount = 1000;
+        vToken.mint(user1, initAmount);
+        vToken.mint(user2, initAmount);
 
+        uint256 redeemAmount = 100;
+        vm.prank(user1);
+        vToken.redeem(redeemAmount, user1, user1);
+        vm.prank(user2);
+        vToken.redeem(redeemAmount, user2, user2);
+
+        mockToken.mint(address(bridgeVault), 50);
+        assertEq(mockToken.balanceOf(address(bridgeVault)), 50);
+        assertEq(vToken.canWithdrawalAmount(user1), 50);
+        assertEq(vToken.canWithdrawalAmount(user2), 0);
+        assertEq(vToken.completedWithdrawal(), 0);
+        assertEq(vToken.queuedWithdrawal(), 200);
+        (uint256 queued, uint256 pending) = vToken.withdrawals(user1);
+        assertEq(queued, 0);
+        assertEq(pending, 100);
+        (queued, pending) = vToken.withdrawals(user2);
+        assertEq(queued, 100);
+        assertEq(pending, 100);
+
+        vm.prank(user1);
+        vToken.withdrawComplete(10);
+        assertEq(mockToken.balanceOf(address(bridgeVault)), 40);
+        assertEq(vToken.canWithdrawalAmount(user1), 40);
+        assertEq(vToken.canWithdrawalAmount(user2), 0);
+        assertEq(vToken.completedWithdrawal(), 10);
+        assertEq(vToken.queuedWithdrawal(), 200);
+
+        vm.prank(user1);
+        vToken.withdrawComplete(40);
+        assertEq(mockToken.balanceOf(address(bridgeVault)), 0);
+        assertEq(vToken.canWithdrawalAmount(user1), 0);
+        assertEq(vToken.canWithdrawalAmount(user2), 0);
+        assertEq(vToken.completedWithdrawal(), 50);
+        assertEq(vToken.queuedWithdrawal(), 200);
+
+        mockToken.mint(address(bridgeVault), 100);
+        assertEq(mockToken.balanceOf(address(bridgeVault)), 100);
+        assertEq(vToken.canWithdrawalAmount(user1), 50);
+        assertEq(vToken.canWithdrawalAmount(user2), 50);
+
+        vm.prank(user1);
+        vToken.withdrawComplete(0);
+        assertEq(mockToken.balanceOf(address(bridgeVault)), 50);
+        assertEq(vToken.canWithdrawalAmount(user1), 0);
+        assertEq(vToken.canWithdrawalAmount(user2), 50);
+        assertEq(vToken.completedWithdrawal(), 100);
+        assertEq(vToken.queuedWithdrawal(), 200);
+        
+        vm.prank(user2);
+        vToken.withdrawComplete(50);
+        assertEq(mockToken.balanceOf(address(bridgeVault)), 0);
+        assertEq(vToken.canWithdrawalAmount(user1), 0);
+        assertEq(vToken.canWithdrawalAmount(user2), 0);
+        assertEq(vToken.completedWithdrawal(), 150);
+        assertEq(vToken.queuedWithdrawal(), 200);
+
+        mockToken.mint(address(bridgeVault), 100);
+        assertEq(mockToken.balanceOf(address(bridgeVault)), 100);
+        assertEq(vToken.canWithdrawalAmount(user1), 0);
+        assertEq(vToken.canWithdrawalAmount(user2), 50);
+        assertEq(vToken.queuedWithdrawal(), 200);
+        assertEq(vToken.completedWithdrawal(), 150);
+
+        vm.prank(user2);
+        vToken.withdrawComplete(0);
+        assertEq(mockToken.balanceOf(address(bridgeVault)), 50);
+        assertEq(vToken.canWithdrawalAmount(user1), 0);
+        assertEq(vToken.canWithdrawalAmount(user2), 0);
+        assertEq(vToken.completedWithdrawal(), 200);
+        assertEq(vToken.queuedWithdrawal(), 200);
+    }
+    
+    function test_WithdrawCompleteWithInsufficientBalance() public {
+        uint256 initAmount = 1000;
+        vToken.mint(user1, initAmount);
+        vToken.mint(user2, initAmount);
+
+        uint256 redeemAmount = 100;
+        vm.prank(user1);
+        vToken.redeem(redeemAmount, user1, user1);
+
+        (uint256 queued, uint256 pending) = vToken.withdrawals(user1);
+        assertEq(queued, 0);
+        assertEq(pending, 100);
+        assertEq(vToken.canWithdrawalAmount(user1), 0);
+        assertEq(vToken.completedWithdrawal(), 0);
+        assertEq(vToken.queuedWithdrawal(), 100);
+
+        vm.prank(user1);
+        // will revert
+        vm.expectRevert(abi.encodeWithSelector(VTokenBase.InsufficientWithdrawAmount.selector, redeemAmount, 0));
+        vToken.withdrawComplete(redeemAmount);
+
+        vm.prank(user1);
+        vm.expectRevert(abi.encodeWithSelector(VTokenBase.InsufficientWithdrawAmount.selector, redeemAmount, 0));
+        vToken.withdrawComplete(0);
+
+        mockToken.mint(address(bridgeVault), 5);
+        assertEq(mockToken.balanceOf(address(bridgeVault)), 5);
+        assertEq(vToken.canWithdrawalAmount(user1), 5);
+
+        vm.prank(user1);
+        vToken.withdrawComplete(5);
+        assertEq(vToken.completedWithdrawal(), 5);
+        assertEq(vToken.queuedWithdrawal(), 100);
+        assertEq(vToken.canWithdrawalAmount(user1), 0);
+
+        vm.prank(user1);
+        vm.expectRevert(abi.encodeWithSelector(VTokenBase.InsufficientWithdrawAmount.selector, 95, 0));
+        vToken.withdrawComplete(0);  
+    }
+    
+    function test_WithdrawCompleteWithExceedPermittedAmount() public {
+        uint256 initAmount = 1000;
+        vToken.mint(user1, initAmount);
+        vToken.mint(user2, initAmount);
+
+        uint256 redeemAmount = 100;
+        vm.prank(user1);
+        vToken.redeem(redeemAmount, user1, user1);
+
+        (uint256 queued, uint256 pending) = vToken.withdrawals(user1);
+        assertEq(queued, 0);
+        assertEq(pending, 100);
+        assertEq(vToken.canWithdrawalAmount(user1), 0);
+        assertEq(vToken.completedWithdrawal(), 0);
+        assertEq(vToken.queuedWithdrawal(), 100);
+
+        vm.prank(user1);
+        // will revert
+        vm.expectRevert(abi.encodeWithSelector(VTokenBase.ExceedPermittedAmount.selector, 200, 100));
+        vToken.withdrawComplete(200); 
+    }
+    
+    function test_AsyncMint() public {
+        uint256 initAmount = 1000;
+        mockToken.mint(user1, initAmount);
+        vm.prank(user1);
+        mockToken.approve(address(vToken), 100);
+        vm.prank(user1);
+        vToken.deposit(100, user1);
+        assertEq(vToken.currentCycleMintTokenAmount(), 100);
+        assertEq(vToken.currentCycleMintVTokenAmount(), 100);
+
+        vm.prank(triggerAddress);
+        vToken.asyncMint(0, 0);
+        assertEq(vToken.currentCycleMintTokenAmount(), 0);
+        assertEq(vToken.currentCycleMintVTokenAmount(), 0);
+    }
+    
+    function test_AsyncRedeem() public {
+        vm.prank(owner);
+        vToken.changeRoleAdmin(triggerAddress, true);
+        vm.prank(triggerAddress);
+        vToken.asyncRedeem(1000, 1000, bytes32(uint256(uint160(user1))), "");
+        assertEq(vToken.currentCycleRedeemVTokenAmount(), 0);
+    }
+    
+    function test_OnlyTriggerAddress() public {
+        vm.prank(user1);
+        vm.expectRevert(abi.encodeWithSelector(VTokenBase.NotTriggerAddress.selector, user1));
+        vToken.asyncMint(1000, 1000);
+        vm.prank(user1);
+        vm.expectRevert(abi.encodeWithSelector(VTokenBase.NotTriggerAddress.selector, user1));
+        vToken.asyncRedeem(1000, 1000, bytes32(uint256(uint160(user1))), "");
+    }
+    
+    function test_OnlyOwner() public {
+        vm.prank(user1);
+        vm.expectRevert();
+        vToken.setOracle(address(0));
+        
+        vm.prank(user1);
+        vm.expectRevert();
+        vToken.setTokenGateway(address(0));
+        
+        vm.prank(user1);
+        vm.expectRevert();
+        vToken.setTriggerAddress(address(0));
+    }
+    
+    function test_OnlyRoleAdmin_Revert() public {
+        assertFalse(vToken.rolesAdmin(user1));
+        vm.prank(user1);
+        vm.expectRevert(abi.encodeWithSelector(VTokenBase.NotRoleAdmin.selector, user1));
+        vToken.mint(user2, 1000);
+        vm.prank(user1);
+        vm.expectRevert(abi.encodeWithSelector(VTokenBase.NotRoleAdmin.selector, user1));
+        vToken.burn(user2, 1000);
+    }
+    function test_OnlyRoleAdmin_Success() public {
+        vm.prank(owner);
+        vToken.changeRoleAdmin(user1, true);
+        assertTrue(vToken.rolesAdmin(user1));
+        vm.prank(user1);
+        vToken.mint(user2, 1000);
+        vm.prank(user1);
+        vToken.burn(user2, 500);
+        assertEq(vToken.balanceOf(user2), 500);
+    }
+    
+    function test_RoleAdmin() public {
+        assertFalse(vToken.rolesAdmin(user1));
+        vm.prank(owner);
+        vToken.changeRoleAdmin(user1, true);
+        assertTrue(vToken.rolesAdmin(user1));
+        vm.prank(user1);
+        vToken.mint(user2, 1000);
+        vm.prank(user1);
+        vToken.burn(user2, 500);
+        assertEq(vToken.balanceOf(user2), 500);
+    }
+    
     function test_PauseUnpause() public {
-        // Test: Only owner can pause
+        assertFalse(vToken.paused());
         vm.prank(owner);
         vToken.pause();
         assertTrue(vToken.paused());
-
-        // Test: Non-owner cannot pause
-        vm.prank(user);
-        vm.expectRevert(abi.encodeWithSignature("OwnableUnauthorizedAccount(address)", user));
-        vToken.pause();
-
-        // Test: Only owner can unpause
+        mockToken.mint(user1, 1000);
+        vm.startPrank(user1);
+        mockToken.approve(address(vToken), 1000);
+        vm.expectRevert();
+        vToken.deposit(1000, user1);
+        vm.stopPrank();
         vm.prank(owner);
         vToken.unpause();
         assertFalse(vToken.paused());
-
-        // Test: Non-owner cannot unpause
-        vm.prank(user);
-        vm.expectRevert(abi.encodeWithSignature("OwnableUnauthorizedAccount(address)", user));
-        vToken.unpause();
+        mockToken.mint(user1, 1000);
+        vm.startPrank(user1);
+        mockToken.approve(address(vToken), 1000);
+        vToken.deposit(1000, user1);
+        vm.stopPrank();
     }
-
-    function test_ChangeRoleAdmin() public {
-        // Setup
-        address role = address(0x5678);
-
-        // Test: Only owner can change role admin
-        vm.prank(owner);
-        vToken.changeRoleAdmin(role, true);
-        assertTrue(vToken.rolesAdmin(role));
-
-        // Test: Non-owner cannot change role admin
-        vm.prank(user);
-        vm.expectRevert(abi.encodeWithSignature("OwnableUnauthorizedAccount(address)", user));
-        vToken.changeRoleAdmin(role, true);
+    
+    function test_SupportsInterface() public {
+        assertTrue(vToken.supportsInterface(type(IERC20).interfaceId));
+        assertTrue(vToken.supportsInterface(type(IERC4626).interfaceId));
     }
-
-    function test_SetTriggerAddress() public {
-        // Setup
-        address newTrigger = address(0x1234);
-
-        // Test: Only owner can set trigger address
-        vm.prank(owner);
-        vToken.setTriggerAddress(newTrigger);
-        assertEq(vToken.triggerAddress(), newTrigger);
-
-        // Test: Non-owner cannot set trigger address
-        vm.prank(user);
-        vm.expectRevert(abi.encodeWithSignature("OwnableUnauthorizedAccount(address)", user));
-        vToken.setTriggerAddress(newTrigger);
-    }
-
-    function test_PauseUnpauseFunctionality() public {
-        // Setup
+    
+    function test_WithdrawFeeToken() public {
         uint256 amount = 1000;
-
-        // Grant role admin to owner
+        mockToken.mint(address(vToken), amount);
+        
         vm.prank(owner);
-        vToken.changeRoleAdmin(owner, true);
-
-        // Mint tokens to user
-        vm.prank(owner);
-        vToken.mint(user, amount);
-
-        // Test: Cannot deposit when paused
-        vm.prank(owner);
-        vToken.pause();
-        vm.prank(user);
-        vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
-        vToken.deposit(amount, user);
-
-        // Test: Cannot withdraw when paused
-        vm.prank(user);
-        vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
-        vToken.withdraw(amount, user, user);
-
-        // Test: Cannot redeem when paused
-        vm.prank(user);
-        vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
-        vToken.redeem(amount, user, user);
-
-        // Test: Functions work after unpause
-        vm.prank(owner);
-        vToken.unpause();
+        vToken.withdrawFeeToken(address(mockToken), amount, user1);
+        
+        assertEq(mockToken.balanceOf(user1), amount);
     }
-
-    // function test_Deposit() public {
-    //     vm.prank(user);
-    //     uint256 shares = vToken.deposit(100 ether, user);
-
-    //     assertEq(vToken.balanceOf(user), shares);
-    //     assertEq(underlyingToken.balanceOf(user), 900 ether);
-    //     assertEq(underlyingToken.balanceOf(address(vToken)), 100 ether);
-    // }
-
-    // function test_Withdraw() public {
-    //     // First deposit
-    //     vm.prank(user);
-    //     vToken.deposit(100 ether, user);
-
-    //     // Then withdraw
-    //     vm.prank(user);
-    //     uint256 assets = vToken.withdraw(50 ether, user, user);
-
-    //     assertEq(assets, 50 ether);
-    //     assertEq(underlyingToken.balanceOf(user), 950 ether);
-    //     assertEq(underlyingToken.balanceOf(address(vToken)), 50 ether);
-    // }
-
-    // function test_BatchClaim() public {
-    //     // Setup
-    //     address user1 = address(1);
-    //     address user2 = address(2);
-    //     uint256 amount = 1000;
-
-    //     // Mint tokens to users
-    //     vToken.mint(user1, amount);
-    //     vToken.mint(user2, amount);
-
-    //     // Create redeem requests
-    //     vm.prank(user1);
-    //     vToken.redeem(amount, user1, user1);
-
-    //     vm.prank(user2);
-    //     vToken.redeem(amount, user2, user2);
-
-    //     // Process batch claim
-    //     vm.prank(triggerAddress);
-    //     vToken.batchClaim(2); // Process 2 requests
-
-    //     // Verify
-    //     assertEq(vToken.balanceOf(user1), 0);
-    //     assertEq(vToken.balanceOf(user2), 0);
-    //     assertEq(underlyingToken.balanceOf(user1), amount);
-    //     assertEq(underlyingToken.balanceOf(user2), amount);
-    // }
-
-    // function test_OnlyTriggerAddressCanBatchClaim() public {
-    //     // Setup
-    //     address user = address(1);
-    //     uint256 amount = 1000;
-
-    //     // Mint tokens to user
-    //     vToken.mint(user, amount);
-
-    //     // Create redeem request
-    //     vm.prank(user);
-    //     vToken.redeem(amount, user, user);
-
-    //     // Try to process batch claim with non-trigger address
-    //     vm.expectRevert(abi.encodeWithSelector(VTokenBase.NotTriggerAddress.selector, address(this)));
-    //     vToken.batchClaim(1); // Try to process 1 request
-    // }
-
-    // function test_OnlyOwnerCanSetMaxRedeemRequests() public {
-    //     vm.expectRevert(abi.encodeWithSignature("OwnableUnauthorizedAccount(address)", address(this)));
-    //     vToken.setMaxRedeemRequestsPerUser(5);
-    // }
 }

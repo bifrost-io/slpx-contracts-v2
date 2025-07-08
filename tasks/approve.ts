@@ -17,7 +17,7 @@ import {ethers} from "hardhat";
 // soneium astr
 // yarn hardhat approve --erc20 0x2CAE934a1e84F693fbb78CA5ED3B0A6893259441 --to 0x9D40Ca58eF5392a8fB161AB27c7f61de5dfBF0E2 --network soneium
 
-// yarn hardhat approve --erc20 0xf877500C6ff3cf8305245bCb3Cf1c5A6B7287aEF --to 0xFd413e3AFe560182C4471F4d143A96d3e259B6dE --network base_local 
+// yarn hardhat approve --erc20 0x667b70d97E3fd39530c6DED23E285c04e35D36d8 --to 0x6b0a44c64190279f7034b77c13a566e914fe5ec4 --network bsc_testnet 
 
 task("approve")
     .addParam('erc20', ``)

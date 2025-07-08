@@ -1,6 +1,6 @@
 import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
-import { GLMR, MULTI_SIGNATURE_WALLET, V_GLMR } from "../constants";
+import { Bsc, Ethereum, Arbitrum, Optimism, Base } from "../constants";
 const deployFunction: DeployFunction = async function ({
   deployments,
   getNamedAccounts,
@@ -10,6 +10,35 @@ const deployFunction: DeployFunction = async function ({
 
   const { deploy } = deployments;
   const { deployer } = await getNamedAccounts();
+
+  const name = "Bifrost Voucher GLMR"
+  const symbol = "vGLMR"
+  let glmrAddress = ""
+  let multiSignatureAddress = ""
+  switch (network.name) {
+    case Bsc.name:
+      glmrAddress = Bsc.GLMR
+      multiSignatureAddress = Bsc.MultiSignature
+      break
+    case Ethereum.name:
+      glmrAddress = Ethereum.GLMR
+      multiSignatureAddress = Ethereum.MultiSignature
+      break
+    case Arbitrum.name:
+      glmrAddress = Arbitrum.GLMR
+      multiSignatureAddress = Arbitrum.MultiSignature
+      break
+    case Optimism.name:
+      glmrAddress = Optimism.GLMR
+      multiSignatureAddress = Optimism.MultiSignature
+      break
+    case Base.name:
+      glmrAddress = Base.GLMR
+      multiSignatureAddress = Base.MultiSignature
+      break
+    default:
+      throw new Error("Network not supported");
+  }
 
   console.log("Deployer is :", deployer);
   await deploy("vGLMR", {
@@ -23,10 +52,10 @@ const deployFunction: DeployFunction = async function ({
         init: {
           methodName: "initialize",
           args: [
-            GLMR.address,
-            MULTI_SIGNATURE_WALLET,
-            V_GLMR.name,
-            V_GLMR.symbol,
+            glmrAddress,
+            multiSignatureAddress,
+            name,
+            symbol,
           ],
         },
       },
