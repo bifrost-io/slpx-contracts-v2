@@ -76,7 +76,6 @@ abstract contract VTokenBase is
     /// @notice Withdraw queue mapping
     mapping(address => Withdrawal) public withdrawals;
 
-
     // =================== Events ===================
     /// @notice Emitted when role admin is changed
     event RoleAdminChanged(address indexed account, bool isAdmin);
@@ -201,13 +200,13 @@ abstract contract VTokenBase is
         bytes memory data = abi.encode(uint32(block.chainid), currentCycleMintVTokenAmount);
         bytes32 assetId = keccak256(bytes(ERC20(asset()).symbol()));
         TeleportParams memory params = TeleportParams({
-            amount: currentCycleMintTokenAmount, 
+            amount: currentCycleMintTokenAmount,
             relayerFee: relayerFee,
             assetId: assetId,
             redeem: true,
             to: BIFROST_TOKEN_GATEWAY,
-            dest: bifrostDest,  
-            timeout: timeout, 
+            dest: bifrostDest,
+            timeout: timeout,
             nativeCost: 0,
             data: data
         });
@@ -219,17 +218,21 @@ abstract contract VTokenBase is
         currentCycleMintTokenAmount = 0;
     }
 
-    function asyncRedeem(uint256 relayerFee, uint64 timeout, bytes32 to, bytes memory data) external payable onlyTriggerAddress {
+    function asyncRedeem(uint256 relayerFee, uint64 timeout, bytes32 to, bytes memory data)
+        external
+        payable
+        onlyTriggerAddress
+    {
         // Send redeem request to Bifrost
         bytes32 assetId = keccak256(bytes(symbol()));
         TeleportParams memory params = TeleportParams({
-            amount: currentCycleRedeemVTokenAmount, 
+            amount: currentCycleRedeemVTokenAmount,
             relayerFee: relayerFee,
             assetId: assetId,
             redeem: true,
             to: to,
-            dest: bifrostDest,  
-            timeout: timeout, 
+            dest: bifrostDest,
+            timeout: timeout,
             nativeCost: 0,
             data: data
         });
@@ -239,7 +242,7 @@ abstract contract VTokenBase is
     }
 
     function withdrawComplete(uint256 amount) external {
-        Withdrawal storage withdrawal = withdrawals[msg.sender]; 
+        Withdrawal storage withdrawal = withdrawals[msg.sender];
         if (amount == 0) {
             // withdraw total pending amount
             amount = withdrawal.pending;
@@ -247,7 +250,7 @@ abstract contract VTokenBase is
         if (amount > withdrawal.pending) {
             revert ExceedPermittedAmount(amount, withdrawal.pending);
         }
-        if(amount > canWithdrawalAmount(msg.sender)) {
+        if (amount > canWithdrawalAmount(msg.sender)) {
             revert InsufficientWithdrawAmount(amount, canWithdrawalAmount(msg.sender));
         }
         withdrawal.pending -= amount;
@@ -341,7 +344,7 @@ abstract contract VTokenBase is
         virtual
         override
     {
-         if (caller != owner) {
+        if (caller != owner) {
             _spendAllowance(owner, caller, shares);
         }
 
@@ -350,7 +353,7 @@ abstract contract VTokenBase is
 
         // Update withdrawal info
         Withdrawal storage withdrawal = withdrawals[caller];
-        withdrawal.queued  = queuedWithdrawal - withdrawal.pending;
+        withdrawal.queued = queuedWithdrawal - withdrawal.pending;
         withdrawal.pending = withdrawal.pending + assets;
         queuedWithdrawal += assets;
         // Update current cycle redeem amounts

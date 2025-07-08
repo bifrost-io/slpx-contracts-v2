@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.24;
 
-
 struct TeleportParams {
     // amount to be sent
     uint256 amount;
