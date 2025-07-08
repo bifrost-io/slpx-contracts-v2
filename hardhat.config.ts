@@ -62,6 +62,12 @@ const config: HardhatUserConfig = {
       accounts:
           process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
+    bsc_testnet: {
+      url: "https://bsc-testnet.bnbchain.org",
+      chainId: 97,
+      accounts:
+          process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+    },
     base: {
       url: "https://mainnet.base.org",
       chainId: 8453,
@@ -136,6 +142,10 @@ const config: HardhatUserConfig = {
       bsc:
           process.env.BSC_API_KEY !== undefined
               ? process.env.BSC_API_KEY
+              : "", 
+      bsc_testnet:
+          process.env.BSC_API_KEY !== undefined
+              ? process.env.BSC_API_KEY
               : "",      
       base:
           process.env.BASE_API_KEY !== undefined
@@ -186,6 +196,14 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: "https://api-sepolia.basescan.org/api",
           browserURL: "https://sepolia.basescan.org"
+        }
+      },
+      {
+        network: "bsc_testnet",
+        chainId: 97,
+        urls: {
+          apiURL: "https://api-testnet.bscscan.com/api",
+          browserURL: "https://api-testnet.bscscan.com/"
         }
       }
     ]
