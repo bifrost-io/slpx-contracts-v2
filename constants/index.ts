@@ -1,49 +1,117 @@
-export const ASTR = {
-      name: "Astar",
-      symbol: "ASTR",
-      address: "0x44C97257Ab904A22DAfA31E75190E3AF9331E81c"
-  }
+export const Ethereum = {
+    name: 'ethereum',
+    IsmpHost: "0x792A6236AF69787C40cF76b69B4c8c7B28c4cA20",
+    FeeToken: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+    TokenGateway: "0xFd413e3AFe560182C4471F4d143A96d3e259B6dE",
+    // Tokens
+    ASTR: "0x44C97257Ab904A22DAfA31E75190E3AF9331E81c",
+    V_ASTR: "0xf659c15AEB6E41A9edAcBbF3fAeF3902c7f3fE1b",
+    BNC: "0xf877500C6ff3cf8305245bCb3Cf1c5A6B7287aEF",
+    V_BNC: "0x61c57c187557442393a96bA8e6FDfE27610832a5",
+    DOT: "0x8d010bf9C26881788b4e6bf5Fd1bdC358c8F90b8",
+    V_DOT: "0xBC33B4D48f76d17A1800aFcB730e8a6AAada7Fe5",
+    GLMR: "0xF83455EBd661eB4f414aD3BF252a62b08C3f990C",
+    V_GLMR: "0x0Bc2e0cab4AD1Dd1398D70bc268c0502e8A6DF24",
 
-export const BNC = {
-    name: "Bifrost Native Coin",
-    symbol: "BNC",
-    address: "0xf877500C6ff3cf8305245bCb3Cf1c5A6B7287aEF"
+    // MultiSignature
+    MultiSignature: "0x8Ce84E9Fa0101D317D8956D73610ad3e0E219d41",
 }
 
-export const DOT = {
-    name: "Polkadot",
-    symbol: "DOT",
-    address: "0x8d010bf9C26881788b4e6bf5Fd1bdC358c8F90b8"
+export const Arbitrum = {
+    name: 'arbitrum',
+    IsmpHost: "0xE05AFD4Eb2ce6d65c40e1048381BD0Ef8b4B299e",
+    FeeToken: "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
+    TokenGateway: "0xFd413e3AFe560182C4471F4d143A96d3e259B6dE",
+    // Tokens
+    ASTR: "0x44C97257Ab904A22DAfA31E75190E3AF9331E81c",
+    V_ASTR: "0xf659c15AEB6E41A9edAcBbF3fAeF3902c7f3fE1b",
+    BNC: "0xf877500C6ff3cf8305245bCb3Cf1c5A6B7287aEF",
+    V_BNC: "0x61c57c187557442393a96bA8e6FDfE27610832a5",
+    DOT: "0x8d010bf9C26881788b4e6bf5Fd1bdC358c8F90b8",
+    V_DOT: "0xBC33B4D48f76d17A1800aFcB730e8a6AAada7Fe5",
+    GLMR: "0xF83455EBd661eB4f414aD3BF252a62b08C3f990C",
+    V_GLMR: "0x0Bc2e0cab4AD1Dd1398D70bc268c0502e8A6DF24",
+
+    // MultiSignature
+    MultiSignature: "0x8Ce84E9Fa0101D317D8956D73610ad3e0E219d41",
 }
 
-export const GLMR = {
-    name: "Moonbeam",
-    symbol: "GLMR",
-    address: "0xF83455EBd661eB4f414aD3BF252a62b08C3f990C"
+export const Optimism = {
+    name: 'optimism',
+    IsmpHost: "0x78c8A5F27C06757EA0e30bEa682f1FD5C8d7645d",
+    FeeToken: "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
+    TokenGateway: "0xFd413e3AFe560182C4471F4d143A96d3e259B6dE",
+    // Tokens
+    ASTR: "0x44C97257Ab904A22DAfA31E75190E3AF9331E81c",
+    V_ASTR: "0xf659c15AEB6E41A9edAcBbF3fAeF3902c7f3fE1b",
+    BNC: "0xf877500C6ff3cf8305245bCb3Cf1c5A6B7287aEF",
+    V_BNC: "0x61c57c187557442393a96bA8e6FDfE27610832a5",
+    DOT: "0x8d010bf9C26881788b4e6bf5Fd1bdC358c8F90b8",
+    V_DOT: "0xBC33B4D48f76d17A1800aFcB730e8a6AAada7Fe5",
+    GLMR: "0xF83455EBd661eB4f414aD3BF252a62b08C3f990C",
+    V_GLMR: "0x0Bc2e0cab4AD1Dd1398D70bc268c0502e8A6DF24",
+
+    // MultiSignature
+    MultiSignature: "0x8Ce84E9Fa0101D317D8956D73610ad3e0E219d41",
 }
 
-export const V_ASTR = {
-      name: "Bifrost Voucher ASTR",
-      symbol: "vASTR",
-      address: "0xf659c15AEB6E41A9edAcBbF3fAeF3902c7f3fE1b"
-  }
+export const Base = {
+    name: 'base',
+    IsmpHost: "0x6FFe92e4d7a9D589549644544780e6725E84b248",
+    FeeToken: "0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb",
+    TokenGateway: "0xFd413e3AFe560182C4471F4d143A96d3e259B6dE",
+    // Tokens
+    ASTR: "0x44C97257Ab904A22DAfA31E75190E3AF9331E81c",
+    V_ASTR: "0xf659c15AEB6E41A9edAcBbF3fAeF3902c7f3fE1b",
+    BNC: "0xf877500C6ff3cf8305245bCb3Cf1c5A6B7287aEF",
+    V_BNC: "0x61c57c187557442393a96bA8e6FDfE27610832a5",
+    DOT: "0x8d010bf9C26881788b4e6bf5Fd1bdC358c8F90b8",
+    V_DOT: "0xBC33B4D48f76d17A1800aFcB730e8a6AAada7Fe5",
+    GLMR: "0xF83455EBd661eB4f414aD3BF252a62b08C3f990C",
+    V_GLMR: "0x0Bc2e0cab4AD1Dd1398D70bc268c0502e8A6DF24",
 
-export const V_BNC = {
-    name: "Bifrost Voucher BNC",
-    symbol: "vBNC",
-    address: "0x61c57c187557442393a96bA8e6FDfE27610832a5"
+    // MultiSignature
+    MultiSignature: "0x8Ce84E9Fa0101D317D8956D73610ad3e0E219d41",
 }
 
-export const V_DOT = {
-    name: "Bifrost Voucher DOT",
-    symbol: "vDOT",
-    address: "0xBC33B4D48f76d17A1800aFcB730e8a6AAada7Fe5"
+export const Bsc = {
+    name: 'bsc',
+    IsmpHost: "0x24B5d421Ec373FcA57325dd2F0C074009Af021F7",
+    FeeToken: "0x1AF3F329e8BE154074D8769D1FFa4eE058B1DBc3",
+    TokenGateway: "0xFd413e3AFe560182C4471F4d143A96d3e259B6dE",
+    // Tokens
+    ASTR: "0x44C97257Ab904A22DAfA31E75190E3AF9331E81c",
+    V_ASTR: "0xf659c15AEB6E41A9edAcBbF3fAeF3902c7f3fE1b",
+    BNC: "0xf877500C6ff3cf8305245bCb3Cf1c5A6B7287aEF",
+    V_BNC: "0x61c57c187557442393a96bA8e6FDfE27610832a5",
+    DOT: "0x8d010bf9C26881788b4e6bf5Fd1bdC358c8F90b8",
+    V_DOT: "0xBC33B4D48f76d17A1800aFcB730e8a6AAada7Fe5",
+    GLMR: "0xF83455EBd661eB4f414aD3BF252a62b08C3f990C",
+    V_GLMR: "0x0Bc2e0cab4AD1Dd1398D70bc268c0502e8A6DF24",
+
+    // MultiSignature
+    MultiSignature: "0x8Ce84E9Fa0101D317D8956D73610ad3e0E219d41",
 }
 
-export const V_GLMR = {
-    name: "Bifrost Voucher GLMR",
-    symbol: "vGLMR",
-    address: "0x0Bc2e0cab4AD1Dd1398D70bc268c0502e8A6DF24"
+export const Soneium = {
+    name: 'soneium',
+    IsmpHost: "0x7F0165140D0f3251c8f6465e94E9d12C7FD40711",
+    FeeToken: "0xbA9986D2381edf1DA03B0B9c1f8b00dc4AacC369",
+    TokenGateway: "0xCe304770236f39F9911BfCC51afBdfF3b8635718"
 }
 
-export const MULTI_SIGNATURE_WALLET = "0x8Ce84E9Fa0101D317D8956D73610ad3e0E219d41"
+export const Bsc_Testnet = {
+    name: 'bsc_testnet',
+    IsmpHost: "0x8Aa0Dea6D675d785A882967Bf38183f6117C09b7",
+    FeeToken: "0xA801da100bF16D07F668F4A49E1f71fc54D05177",
+    TokenGateway: "0xFcDa26cA021d5535C3059547390E6cCd8De7acA6",
+    // Tokens
+    BNC: "0x44C97257Ab904A22DAfA31E75190E3AF9331E81c",
+    V_BNC: "0x61c57c187557442393a96bA8e6FDfE27610832a5",
+
+    // MultiSignature
+    MultiSignature: "0x4597C97a43dFBb4a398E2b16AA9cE61f90d801DD",
+}
+
+export const BifrostPolakdotDest = "0x504f4c4b41444f542d32303330"
+export const BifrostPaseoDest = "0x4b5553414d412d32303330"
