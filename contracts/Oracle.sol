@@ -13,8 +13,11 @@ import {
 } from "@polytope-labs/ismp-solidity/interfaces/IIsmpModule.sol";
 import {Bytes} from "@polytope-labs/solidity-merkle-trees/src/trie/Bytes.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 
-contract Oracle is IIsmpModule, Ownable {
+contract Oracle is IIsmpModule, Initializable, OwnableUpgradeable, PausableUpgradeable {
     using Math for uint256;
     using Bytes for bytes;
 
@@ -74,7 +77,9 @@ contract Oracle is IIsmpModule, Ownable {
         _;
     }
 
-    constructor(address hostAddress, bytes memory bifrostChainId) Ownable(msg.sender) {
+    function initialize(address owner, address hostAddress, bytes memory bifrostChainId) public initializer {
+        __Ownable_init(owner);
+        __Pausable_init();
         _host = hostAddress;
         _bifrostChainId = bifrostChainId;
     }
@@ -89,10 +94,25 @@ contract Oracle is IIsmpModule, Ownable {
         emit FeeRateChanged(_mintFeeRate, _redeemFeeRate);
     }
 
-    /// Get vToken by token.
+    /// @notice Pause the contract
+    function pause() external onlyOwner {
+        _pause();
+    }
+
+    /// @notice Unpause the contract
+    function unpause() external onlyOwner {
+        _unpause();
+    }
+
+    /// @notice Get vToken by token.
+    /// @param _token The token address
+    /// @param _tokenAmount The token amount
+    /// @param rounding The rounding mode
+    /// @return The vToken amount
     function getVTokenAmountByToken(address _token, uint256 _tokenAmount, Math.Rounding rounding)
         public
         view
+        whenNotPaused
         returns (uint256)
     {
         PoolInfo memory pool = poolInfo[_token];
@@ -105,10 +125,15 @@ contract Oracle is IIsmpModule, Ownable {
         return vTokenAmount;
     }
 
-    /// Get token by vToken.
+    /// @notice Get token by vToken.
+    /// @param _token The token address
+    /// @param _vTokenAmount The vToken amount
+    /// @param rounding The rounding mode
+    /// @return The token amount
     function getTokenAmountByVToken(address _token, uint256 _vTokenAmount, Math.Rounding rounding)
         public
         view
+        whenNotPaused
         returns (uint256)
     {
         PoolInfo memory pool = poolInfo[_token];
@@ -121,6 +146,9 @@ contract Oracle is IIsmpModule, Ownable {
         return tokenAmount;
     }
 
+    /// @notice Accept the post request
+    /// @param incoming The incoming post request
+    /// @dev The post request is from Bifrost
     function onAccept(IncomingPostRequest calldata incoming) external override onlyIsmpHost onlyFromBifrost(incoming.request) {
         bytes memory body = incoming.request.body;
         (address token, uint256 tokenAmount, uint256 vtokenAmount) = abi.decode(body, (address, uint256, uint256));

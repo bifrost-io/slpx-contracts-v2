@@ -12,35 +12,43 @@ const deployFunction: DeployFunction = async function ({
   const { deploy } = deployments;
   const { deployer } = await getNamedAccounts();
 
+  let multiSignatureAddress = "";
   let host = "";
   let bifrostChainId = "";
 
   switch (network.name) {
     case Bsc_Testnet.name:
+      multiSignatureAddress = Bsc_Testnet.MultiSignature;
       host = Bsc_Testnet.IsmpHost;
       bifrostChainId = BifrostPaseoDest;
       break;
     case Bsc.name:
+      multiSignatureAddress = Bsc.MultiSignature;
       host = Bsc.IsmpHost;
       bifrostChainId = BifrostPolakdotDest;
       break;
     case Ethereum.name:
+      multiSignatureAddress = Ethereum.MultiSignature;
       host = Ethereum.IsmpHost;
       bifrostChainId = BifrostPolakdotDest;
       break;
     case Arbitrum.name:
+      multiSignatureAddress = Arbitrum.MultiSignature;
       host = Arbitrum.IsmpHost;
       bifrostChainId = BifrostPolakdotDest;
       break;
     case Optimism.name:
+      multiSignatureAddress = Optimism.MultiSignature;
       host = Optimism.IsmpHost;
       bifrostChainId = BifrostPolakdotDest;
       break;
     case Base.name:
+      multiSignatureAddress = Base.MultiSignature;
       host = Base.IsmpHost;
       bifrostChainId = BifrostPolakdotDest;
       break;
     case Soneium.name:
+      multiSignatureAddress = Soneium.MultiSignature;
       host = Soneium.IsmpHost;
       bifrostChainId = BifrostPolakdotDest;
       break;
@@ -53,10 +61,19 @@ const deployFunction: DeployFunction = async function ({
     from: deployer,
     log: true,
     deterministicDeployment: false,
-    args: [
-      host,
-      bifrostChainId
-    ]
+    proxy: {
+      proxyContract: "OpenZeppelinTransparentProxy",
+      execute: {
+        init: {
+          methodName: "initialize",
+          args: [
+            multiSignatureAddress,
+            host,
+            bifrostChainId
+          ],
+        },
+      },
+    },
   });
 };
 

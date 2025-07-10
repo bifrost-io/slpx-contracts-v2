@@ -34,8 +34,6 @@ contract MockTokenGateway is ITokenGateway {
 }
 
 contract TestOracle is Oracle {
-    constructor(address host) Oracle(host) {}
-
     function setPoolInfo(address token, uint256 tokenAmount, uint256 vTokenAmount) external {
         poolInfo[token] = PoolInfo({tokenAmount: tokenAmount, vTokenAmount: vTokenAmount});
     }
@@ -84,7 +82,8 @@ contract VTokenBaseTest is Test {
         mockToken = new MockToken();
         bridgeVault = new BridgeVault();
         bridgeVault.initialize(owner);
-        oracle = new TestOracle(address(this));
+        oracle = new TestOracle();
+        oracle.initialize(owner, address(this), "0x1234567890abcdef");
         tokenGateway = new MockTokenGateway();
 
         // Deploy VToken
@@ -320,7 +319,14 @@ contract VTokenBaseTest is Test {
         assertCanWithdrawalAmount(user3, 0, 0, 0);
 
         // Mock Async Redeem Success
-        mockToken.mint(address(bridgeVault), 300);
+        mockToken.mint(address(bridgeVault), 50);
+        assertEq(mockToken.balanceOf(address(bridgeVault)), 50);
+        assertCanWithdrawalAmount(user1, 50, 0, 50);
+        assertCanWithdrawalAmount(user2, 0, 0, 0);
+        assertCanWithdrawalAmount(user3, 0, 0, 0);
+
+        // Mock Async Redeem Success
+        mockToken.mint(address(bridgeVault), 250);
         assertEq(mockToken.balanceOf(address(bridgeVault)), 300);
         assertCanWithdrawalAmount(user1, 100, 1, 0);
         assertCanWithdrawalAmount(user2, 100, 1, 0);
@@ -414,6 +420,28 @@ contract VTokenBaseTest is Test {
         assertCanWithdrawalAmount(user1, 100, 1, 0);
         assertCanWithdrawalAmount(user2, 100, 1, 0);
         assertCanWithdrawalAmount(user3, 200, 2, 0);
+
+        // user1 ,user2 and user3 call withdrawComplete
+        vm.prank(user1);
+        vToken.withdrawComplete();
+        vm.prank(user2);
+        vToken.withdrawComplete();
+        vm.prank(user3);
+        vToken.withdrawComplete();
+        assertCanWithdrawalAmount(user1, 0, 0, 0);
+        assertCanWithdrawalAmount(user2, 0, 0, 0);
+        assertCanWithdrawalAmount(user3, 0, 0, 0);
+
+        vm.startPrank(user1);
+        vToken.withdraw(withdrawAmount, user1, user1);
+        vToken.withdraw(withdrawAmount, user1, user1);
+        vToken.withdraw(withdrawAmount, user1, user1);
+        vToken.withdraw(withdrawAmount, user1, user1);
+        vToken.withdraw(withdrawAmount, user1, user1);
+
+        mockToken.mint(address(bridgeVault), 50);
+        assertEq(mockToken.balanceOf(address(bridgeVault)), 50);
+        assertCanWithdrawalAmount(user1, 50, 0, 50);
     }
 
     function test_WithdrawComplete_ExceedMaxWithdrawCount() public {
