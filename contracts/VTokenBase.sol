@@ -74,7 +74,10 @@ abstract contract VTokenBase is
     uint256 public completedWithdrawal;
 
     /// @notice Withdraw queue mapping
-    mapping(address => Withdrawal) public withdrawals;
+    mapping(address => Withdrawal[]) public withdrawals;
+
+    /// @notice  Max withdraw count
+    uint256 public maxWithdrawCount = 5;
 
     // =================== Events ===================
     /// @notice Emitted when role admin is changed
@@ -104,6 +107,9 @@ abstract contract VTokenBase is
     /// @notice Emitted when a claim is successfully processed
     event WithdrawalCompleted(address indexed receiver, uint256 tokenAmount);
 
+    /// @notice Emitted when max withdraw count is changed
+    event MaxWithdrawCountChanged(uint256 maxWithdrawCount);
+
     // =================== Errors ===================
     /// @notice Throws if the caller is not a role admin
     error NotRoleAdmin(address account);
@@ -115,6 +121,9 @@ abstract contract VTokenBase is
     error ExceedPermittedAmount(uint256 tokenAmount, uint256 pendingAmount);
 
     error InsufficientWithdrawAmount(uint256 tokenAmount, uint256 availableAmount);
+
+    /// @notice Throws if the withdraw count is greater than the max withdraw count
+    error ExceedMaxWithdrawCount(uint256 withdrawCount);
 
     // =================== Modifiers ===================
     /// @notice Modifier: Only trigger address can call
@@ -173,6 +182,11 @@ abstract contract VTokenBase is
         address oldBridgeVault = address(bridgeVault);
         bridgeVault = BridgeVault(_bridgeVault);
         emit BridgeVaultChanged(oldBridgeVault, _bridgeVault);
+    }
+
+    function setMaxWithdrawCount(uint256 _maxWithdrawCount) external onlyOwner {
+        maxWithdrawCount = _maxWithdrawCount;
+        emit MaxWithdrawCountChanged(_maxWithdrawCount);
     }
 
     function approveTokenGateway(address token) external onlyOwner {
@@ -241,42 +255,57 @@ abstract contract VTokenBase is
         currentCycleRedeemVTokenAmount = 0;
     }
 
-    function withdrawComplete(uint256 amount) external {
-        Withdrawal storage withdrawal = withdrawals[msg.sender];
-        if (amount == 0) {
-            // withdraw total pending amount
-            amount = withdrawal.pending;
+    function withdrawComplete() external {
+        Withdrawal[] storage _withdrawals = withdrawals[msg.sender];
+        (uint256 totalAvailableAmount, uint256 pendingDeleteIndex, uint256 pendingDeleteAmount) =
+            canWithdrawalAmount(msg.sender);
+
+        unchecked {
+            for (uint256 i = 0; i < pendingDeleteIndex; i++) {
+                _withdrawals.pop();
+            }
         }
-        if (amount > withdrawal.pending) {
-            revert ExceedPermittedAmount(amount, withdrawal.pending);
+
+        if (pendingDeleteAmount > 0) {
+            _withdrawals[_withdrawals.length - 1].pending -= pendingDeleteAmount;
+            _withdrawals[_withdrawals.length - 1].queued += pendingDeleteAmount;
         }
-        if (amount > canWithdrawalAmount(msg.sender)) {
-            revert InsufficientWithdrawAmount(amount, canWithdrawalAmount(msg.sender));
-        }
-        withdrawal.pending -= amount;
-        withdrawal.queued += amount;
-        completedWithdrawal += amount;
-        bridgeVault.withdrawToken(address(asset()), msg.sender, amount);
-        emit WithdrawalCompleted(msg.sender, amount);
+
+        completedWithdrawal += totalAvailableAmount;
+        bridgeVault.withdrawToken(address(asset()), msg.sender, totalAvailableAmount);
+        emit WithdrawalCompleted(msg.sender, totalAvailableAmount);
     }
 
     function getTotalBalance() public view returns (uint256) {
         return bridgeVault.getBalance(address(asset())) + completedWithdrawal;
     }
 
-    function canWithdrawalAmount(address target) public view returns (uint256) {
-        Withdrawal memory withdrawal = withdrawals[target];
-
+    function canWithdrawalAmount(address target) public view returns (uint256, uint256, uint256) {
+        Withdrawal[] memory _withdrawals = withdrawals[target];
+        uint256 totalAvailableAmount = 0;
         uint256 totalBalance = getTotalBalance();
-        uint256 vaultBalance = bridgeVault.getBalance(address(asset()));
-        if (totalBalance <= withdrawal.queued) {
-            return 0;
+        uint256 pendingDeleteIndex = 0;
+        uint256 pendingDeleteAmount = 0;
+        for (uint256 i = _withdrawals.length; i > 0; i--) {
+            uint256 index = i - 1;
+            if (totalBalance > _withdrawals[index].queued) {
+                uint256 currentAvailableAmount = totalBalance - _withdrawals[index].queued;
+                if (currentAvailableAmount < _withdrawals[index].pending) {
+                    totalAvailableAmount += currentAvailableAmount;
+                    pendingDeleteAmount += currentAvailableAmount;
+                    break;
+                } else {
+                    totalAvailableAmount += _withdrawals[index].pending;
+                    currentAvailableAmount -= _withdrawals[index].pending;
+                    pendingDeleteIndex += 1;
+                }
+            }
         }
+        return (totalAvailableAmount, pendingDeleteIndex, pendingDeleteAmount);
+    }
 
-        uint256 availableAmount = totalBalance - withdrawal.queued;
-        availableAmount = vaultBalance < availableAmount ? vaultBalance : availableAmount;
-
-        return withdrawal.pending < availableAmount ? withdrawal.pending : availableAmount;
+    function getWithdrawals(address target) public view returns (Withdrawal[] memory) {
+        return withdrawals[target];
     }
 
     // =================== ERC4626 functions ===================
@@ -352,9 +381,23 @@ abstract contract VTokenBase is
         _mint(address(this), shares);
 
         // Update withdrawal info
-        Withdrawal storage withdrawal = withdrawals[caller];
-        withdrawal.queued = queuedWithdrawal - withdrawal.pending;
-        withdrawal.pending = withdrawal.pending + assets;
+        Withdrawal[] storage _withdrawals = withdrawals[caller];
+        uint256 length = _withdrawals.length;
+
+        if (length >= maxWithdrawCount) {
+            revert ExceedMaxWithdrawCount(length);
+        }
+
+        _withdrawals.push();
+        if (length > 0) {
+            unchecked {
+                for (uint256 i = length; i > 0; i--) {
+                    _withdrawals[i] = _withdrawals[i - 1];
+                }
+            }
+        }
+
+        _withdrawals[0] = Withdrawal({queued: queuedWithdrawal, pending: assets});
         queuedWithdrawal += assets;
         // Update current cycle redeem amounts
         currentCycleRedeemVTokenAmount += shares;

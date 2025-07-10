@@ -58,6 +58,19 @@ contract VTokenBaseTest is Test {
     event AsyncMintCompleted(uint256 tokenAmount, uint256 vTokenAmount);
     event AsyncRedeemCompleted(uint256 vTokenAmount);
 
+    function assertCanWithdrawalAmount(
+        address user,
+        uint256 _totalAvailableAmount,
+        uint256 _pendingDeleteIndex,
+        uint256 _pendingDeleteAmount
+    ) public {
+        (uint256 totalAvailableAmount, uint256 pendingDeleteIndex, uint256 pendingDeleteAmount) =
+            vToken.canWithdrawalAmount(user);
+        assertEq(totalAvailableAmount, _totalAvailableAmount);
+        assertEq(pendingDeleteIndex, _pendingDeleteIndex);
+        assertEq(pendingDeleteAmount, _pendingDeleteAmount);
+    }
+
     function setUp() public {
         owner = makeAddr("owner");
         triggerAddress = makeAddr("trigger");
@@ -162,7 +175,7 @@ contract VTokenBaseTest is Test {
 
         vm.prank(user1);
         vToken.redeem(redeemAmount, user1, user1);
-        (uint256 queued, uint256 pending) = vToken.withdrawals(user1);
+        (uint256 queued, uint256 pending) = vToken.withdrawals(user1, 0);
         assertEq(queued, 0);
         assertEq(pending, redeemAmount);
         assertEq(vToken.currentCycleRedeemVTokenAmount(), redeemAmount);
@@ -172,7 +185,7 @@ contract VTokenBaseTest is Test {
 
         vm.prank(user2);
         vToken.redeem(redeemAmount, user2, user2);
-        (queued, pending) = vToken.withdrawals(user2);
+        (queued, pending) = vToken.withdrawals(user2, 0);
         assertEq(queued, redeemAmount);
         assertEq(pending, redeemAmount);
         assertEq(vToken.currentCycleRedeemVTokenAmount(), redeemAmount * 2);
@@ -182,7 +195,7 @@ contract VTokenBaseTest is Test {
 
         vm.prank(user3);
         vToken.redeem(redeemAmount, user3, user3);
-        (queued, pending) = vToken.withdrawals(user3);
+        (queued, pending) = vToken.withdrawals(user3, 0);
         assertEq(queued, redeemAmount * 2);
         assertEq(pending, redeemAmount);
         assertEq(vToken.currentCycleRedeemVTokenAmount(), redeemAmount * 3);
@@ -192,9 +205,12 @@ contract VTokenBaseTest is Test {
 
         vm.prank(user1);
         vToken.redeem(redeemAmount, user1, user1);
-        (queued, pending) = vToken.withdrawals(user1);
-        assertEq(queued, redeemAmount * 2);
-        assertEq(pending, redeemAmount * 2);
+        (queued, pending) = vToken.withdrawals(user1, 1);
+        assertEq(queued, 0);
+        assertEq(pending, redeemAmount);
+        (queued, pending) = vToken.withdrawals(user1, 0);
+        assertEq(queued, redeemAmount * 3);
+        assertEq(pending, redeemAmount);
         assertEq(vToken.currentCycleRedeemVTokenAmount(), redeemAmount * 4);
         assertEq(vToken.balanceOf(address(vToken)), redeemAmount * 4);
         assertEq(vToken.balanceOf(user1), depositAmount - redeemAmount * 2);
@@ -202,9 +218,12 @@ contract VTokenBaseTest is Test {
 
         vm.prank(user2);
         vToken.redeem(redeemAmount, user2, user2);
-        (queued, pending) = vToken.withdrawals(user2);
-        assertEq(queued, redeemAmount * 3);
-        assertEq(pending, redeemAmount * 2);
+        (queued, pending) = vToken.withdrawals(user2, 1);
+        assertEq(queued, redeemAmount);
+        assertEq(pending, redeemAmount);
+        (queued, pending) = vToken.withdrawals(user2, 0);
+        assertEq(queued, redeemAmount * 4);
+        assertEq(pending, redeemAmount);
         assertEq(vToken.currentCycleRedeemVTokenAmount(), redeemAmount * 5);
         assertEq(vToken.balanceOf(address(vToken)), redeemAmount * 5);
         assertEq(vToken.balanceOf(user2), depositAmount - redeemAmount * 2);
@@ -220,7 +239,7 @@ contract VTokenBaseTest is Test {
 
         vm.startPrank(user1);
         vToken.withdraw(withdrawAmount, user1, user1);
-        (uint256 queued, uint256 pending) = vToken.withdrawals(user1);
+        (uint256 queued, uint256 pending) = vToken.withdrawals(user1, 0);
         assertEq(queued, 0);
         assertEq(pending, withdrawAmount);
         assertEq(vToken.currentCycleRedeemVTokenAmount(), withdrawAmount);
@@ -231,7 +250,7 @@ contract VTokenBaseTest is Test {
 
         vm.startPrank(user2);
         vToken.withdraw(withdrawAmount, user2, user2);
-        (queued, pending) = vToken.withdrawals(user2);
+        (queued, pending) = vToken.withdrawals(user2, 0);
         assertEq(queued, withdrawAmount);
         assertEq(pending, withdrawAmount);
         assertEq(vToken.currentCycleRedeemVTokenAmount(), withdrawAmount * 2);
@@ -242,7 +261,7 @@ contract VTokenBaseTest is Test {
 
         vm.startPrank(user3);
         vToken.withdraw(withdrawAmount, user3, user3);
-        (queued, pending) = vToken.withdrawals(user3);
+        (queued, pending) = vToken.withdrawals(user3, 0);
         assertEq(queued, withdrawAmount * 2);
         assertEq(pending, withdrawAmount);
         assertEq(vToken.currentCycleRedeemVTokenAmount(), withdrawAmount * 3);
@@ -253,9 +272,12 @@ contract VTokenBaseTest is Test {
 
         vm.startPrank(user1);
         vToken.withdraw(withdrawAmount, user1, user1);
-        (queued, pending) = vToken.withdrawals(user1);
-        assertEq(queued, withdrawAmount * 2);
-        assertEq(pending, withdrawAmount * 2);
+        (queued, pending) = vToken.withdrawals(user1, 1);
+        assertEq(queued, 0);
+        assertEq(pending, withdrawAmount);
+        (queued, pending) = vToken.withdrawals(user1, 0);
+        assertEq(queued, withdrawAmount * 3);
+        assertEq(pending, withdrawAmount);
         assertEq(vToken.currentCycleRedeemVTokenAmount(), withdrawAmount * 4);
         assertEq(vToken.balanceOf(address(vToken)), withdrawAmount * 4);
         assertEq(vToken.balanceOf(user1), depositAmount - withdrawAmount * 2);
@@ -264,9 +286,12 @@ contract VTokenBaseTest is Test {
 
         vm.startPrank(user2);
         vToken.withdraw(withdrawAmount, user2, user2);
-        (queued, pending) = vToken.withdrawals(user2);
-        assertEq(queued, withdrawAmount * 3);
-        assertEq(pending, withdrawAmount * 2);
+        (queued, pending) = vToken.withdrawals(user2, 1);
+        assertEq(queued, withdrawAmount);
+        assertEq(pending, withdrawAmount);
+        (queued, pending) = vToken.withdrawals(user2, 0);
+        assertEq(queued, withdrawAmount * 4);
+        assertEq(pending, withdrawAmount);
         assertEq(vToken.currentCycleRedeemVTokenAmount(), withdrawAmount * 5);
         assertEq(vToken.balanceOf(address(vToken)), withdrawAmount * 5);
         assertEq(vToken.balanceOf(user2), depositAmount - withdrawAmount * 2);
@@ -275,7 +300,7 @@ contract VTokenBaseTest is Test {
     }
 
     // TODO:
-    function test_CanWithdrawAmount() public {
+    function test_CanWithdrawalAmount() public {
         uint256 depositAmount = 1000;
         uint256 withdrawAmount = 100;
         vToken.mint(user1, depositAmount);
@@ -290,26 +315,26 @@ contract VTokenBaseTest is Test {
         vm.prank(user3);
         vToken.withdraw(withdrawAmount, user3, user3);
 
-        assertEq(vToken.canWithdrawalAmount(user1), 0);
-        assertEq(vToken.canWithdrawalAmount(user2), 0);
-        assertEq(vToken.canWithdrawalAmount(user3), 0);
+        assertCanWithdrawalAmount(user1, 0, 0, 0);
+        assertCanWithdrawalAmount(user2, 0, 0, 0);
+        assertCanWithdrawalAmount(user3, 0, 0, 0);
 
         // Mock Async Redeem Success
         mockToken.mint(address(bridgeVault), 300);
         assertEq(mockToken.balanceOf(address(bridgeVault)), 300);
-        assertEq(vToken.canWithdrawalAmount(user1), 100);
-        assertEq(vToken.canWithdrawalAmount(user2), 100);
-        assertEq(vToken.canWithdrawalAmount(user3), 100);
+        assertCanWithdrawalAmount(user1, 100, 1, 0);
+        assertCanWithdrawalAmount(user2, 100, 1, 0);
+        assertCanWithdrawalAmount(user3, 100, 1, 0);
 
         // user2 and user3 call withdrawComplete
         vm.prank(user2);
-        vToken.withdrawComplete(100);
+        vToken.withdrawComplete();
         vm.prank(user3);
-        vToken.withdrawComplete(100);
+        vToken.withdrawComplete();
 
-        assertEq(vToken.canWithdrawalAmount(user1), 100);
-        assertEq(vToken.canWithdrawalAmount(user2), 0);
-        assertEq(vToken.canWithdrawalAmount(user3), 0);
+        assertCanWithdrawalAmount(user1, 100, 1, 0);
+        assertCanWithdrawalAmount(user2, 0, 0, 0);
+        assertCanWithdrawalAmount(user3, 0, 0, 0);
 
         // second cycle withdraw
         vm.prank(user1);
@@ -319,26 +344,26 @@ contract VTokenBaseTest is Test {
         vm.prank(user3);
         vToken.withdraw(withdrawAmount, user3, user3);
 
-        assertEq(vToken.canWithdrawalAmount(user1), 100);
-        assertEq(vToken.canWithdrawalAmount(user2), 0);
-        assertEq(vToken.canWithdrawalAmount(user3), 0);
+        assertCanWithdrawalAmount(user1, 100, 1, 0);
+        assertCanWithdrawalAmount(user2, 0, 0, 0);
+        assertCanWithdrawalAmount(user3, 0, 0, 0);
 
         // Mock Async Redeem Success
         mockToken.mint(address(bridgeVault), 300);
         assertEq(mockToken.balanceOf(address(bridgeVault)), 400);
-        assertEq(vToken.canWithdrawalAmount(user1), 200);
-        assertEq(vToken.canWithdrawalAmount(user2), 100);
-        assertEq(vToken.canWithdrawalAmount(user3), 100);
+        assertCanWithdrawalAmount(user1, 200, 2, 0);
+        assertCanWithdrawalAmount(user2, 100, 1, 0);
+        assertCanWithdrawalAmount(user3, 100, 1, 0);
 
         // user1 and user2 call withdrawComplete
         vm.prank(user1);
-        vToken.withdrawComplete(200);
+        vToken.withdrawComplete();
         vm.prank(user2);
-        vToken.withdrawComplete(100);
+        vToken.withdrawComplete();
 
-        assertEq(vToken.canWithdrawalAmount(user1), 0);
-        assertEq(vToken.canWithdrawalAmount(user2), 0);
-        assertEq(vToken.canWithdrawalAmount(user3), 100);
+        assertCanWithdrawalAmount(user1, 0, 0, 0);
+        assertCanWithdrawalAmount(user2, 0, 0, 0);
+        assertCanWithdrawalAmount(user3, 100, 1, 0);
 
         // Third cycle withdraw
         vm.prank(user1);
@@ -349,19 +374,64 @@ contract VTokenBaseTest is Test {
         vToken.withdraw(withdrawAmount, user3, user3);
 
         assertEq(mockToken.balanceOf(address(bridgeVault)), 100);
-        assertEq(vToken.canWithdrawalAmount(user1), 0);
-        assertEq(vToken.canWithdrawalAmount(user2), 0);
-        assertEq(vToken.canWithdrawalAmount(user3), 0);
+        assertCanWithdrawalAmount(user1, 0, 0, 0);
+        assertCanWithdrawalAmount(user2, 0, 0, 0);
+        assertCanWithdrawalAmount(user3, 100, 1, 0);
 
         // Mock Async Redeem Success
-        mockToken.mint(address(bridgeVault), 300);
+        mockToken.mint(address(bridgeVault), 50);
+        assertEq(mockToken.balanceOf(address(bridgeVault)), 150);
+        assertCanWithdrawalAmount(user1, 50, 0, 50);
+        assertCanWithdrawalAmount(user2, 0, 0, 0);
+        assertCanWithdrawalAmount(user3, 100, 1, 0);
+
+        mockToken.mint(address(bridgeVault), 50);
+        assertEq(mockToken.balanceOf(address(bridgeVault)), 200);
+        assertCanWithdrawalAmount(user1, 100, 1, 0);
+        assertCanWithdrawalAmount(user2, 0, 0, 0);
+        assertCanWithdrawalAmount(user3, 100, 1, 0);
+
+        mockToken.mint(address(bridgeVault), 50);
+        assertEq(mockToken.balanceOf(address(bridgeVault)), 250);
+        assertCanWithdrawalAmount(user1, 100, 1, 0);
+        assertCanWithdrawalAmount(user2, 50, 0, 50);
+        assertCanWithdrawalAmount(user3, 100, 1, 0);
+
+        mockToken.mint(address(bridgeVault), 50);
+        assertEq(mockToken.balanceOf(address(bridgeVault)), 300);
+        assertCanWithdrawalAmount(user1, 100, 1, 0);
+        assertCanWithdrawalAmount(user2, 100, 1, 0);
+        assertCanWithdrawalAmount(user3, 100, 1, 0);
+
+        mockToken.mint(address(bridgeVault), 50);
+        assertEq(mockToken.balanceOf(address(bridgeVault)), 350);
+        assertCanWithdrawalAmount(user1, 100, 1, 0);
+        assertCanWithdrawalAmount(user2, 100, 1, 0);
+        assertCanWithdrawalAmount(user3, 150, 1, 50);
+
+        mockToken.mint(address(bridgeVault), 50);
         assertEq(mockToken.balanceOf(address(bridgeVault)), 400);
-        assertEq(vToken.canWithdrawalAmount(user1), 100);
-        assertEq(vToken.canWithdrawalAmount(user2), 100);
-        assertEq(vToken.canWithdrawalAmount(user3), 200);
+        assertCanWithdrawalAmount(user1, 100, 1, 0);
+        assertCanWithdrawalAmount(user2, 100, 1, 0);
+        assertCanWithdrawalAmount(user3, 200, 2, 0);
     }
 
-    function test_WithdrawComplete() public {
+    function test_WithdrawComplete_ExceedMaxWithdrawCount() public {
+        vToken.mint(user1, 1000);
+        vm.startPrank(user1);
+        vToken.withdraw(100, user1, user1);
+        vToken.withdraw(100, user1, user1);
+        vToken.redeem(100, user1, user1);
+        vToken.withdraw(100, user1, user1);
+        vToken.withdraw(100, user1, user1);
+        vm.expectRevert(abi.encodeWithSelector(VTokenBase.ExceedMaxWithdrawCount.selector, 5));
+        vToken.withdraw(100, user1, user1);
+        vm.expectRevert(abi.encodeWithSelector(VTokenBase.ExceedMaxWithdrawCount.selector, 5));
+        vToken.redeem(100, user1, user1);
+        vm.stopPrank();
+    }
+
+    function test_WithdrawCompleteSuccess() public {
         uint256 initAmount = 1000;
         vToken.mint(user1, initAmount);
         vToken.mint(user2, initAmount);
@@ -374,130 +444,89 @@ contract VTokenBaseTest is Test {
 
         mockToken.mint(address(bridgeVault), 50);
         assertEq(mockToken.balanceOf(address(bridgeVault)), 50);
-        assertEq(vToken.canWithdrawalAmount(user1), 50);
-        assertEq(vToken.canWithdrawalAmount(user2), 0);
+        assertCanWithdrawalAmount(user1, 50, 0, 50);
+        assertCanWithdrawalAmount(user2, 0, 0, 0);
         assertEq(vToken.completedWithdrawal(), 0);
         assertEq(vToken.queuedWithdrawal(), 200);
-        (uint256 queued, uint256 pending) = vToken.withdrawals(user1);
+        (uint256 queued, uint256 pending) = vToken.withdrawals(user1, 0);
         assertEq(queued, 0);
         assertEq(pending, 100);
-        (queued, pending) = vToken.withdrawals(user2);
+        (queued, pending) = vToken.withdrawals(user2, 0);
         assertEq(queued, 100);
         assertEq(pending, 100);
 
         vm.prank(user1);
-        vToken.withdrawComplete(10);
-        assertEq(mockToken.balanceOf(address(bridgeVault)), 40);
-        assertEq(vToken.canWithdrawalAmount(user1), 40);
-        assertEq(vToken.canWithdrawalAmount(user2), 0);
-        assertEq(vToken.completedWithdrawal(), 10);
-        assertEq(vToken.queuedWithdrawal(), 200);
-
-        vm.prank(user1);
-        vToken.withdrawComplete(40);
+        vToken.withdrawComplete();
         assertEq(mockToken.balanceOf(address(bridgeVault)), 0);
-        assertEq(vToken.canWithdrawalAmount(user1), 0);
-        assertEq(vToken.canWithdrawalAmount(user2), 0);
+        assertCanWithdrawalAmount(user1, 0, 0, 0);
+        assertCanWithdrawalAmount(user2, 0, 0, 0);
         assertEq(vToken.completedWithdrawal(), 50);
         assertEq(vToken.queuedWithdrawal(), 200);
+        (queued, pending) = vToken.withdrawals(user1, 0);
+        assertEq(queued, 50);
+        assertEq(pending, 50);
 
-        mockToken.mint(address(bridgeVault), 100);
-        assertEq(mockToken.balanceOf(address(bridgeVault)), 100);
-        assertEq(vToken.canWithdrawalAmount(user1), 50);
-        assertEq(vToken.canWithdrawalAmount(user2), 50);
+        mockToken.mint(address(bridgeVault), 10);
+        assertEq(mockToken.balanceOf(address(bridgeVault)), 10);
+        assertCanWithdrawalAmount(user1, 10, 0, 10);
+        assertCanWithdrawalAmount(user2, 0, 0, 0);
 
         vm.prank(user1);
-        vToken.withdrawComplete(0);
-        assertEq(mockToken.balanceOf(address(bridgeVault)), 50);
-        assertEq(vToken.canWithdrawalAmount(user1), 0);
-        assertEq(vToken.canWithdrawalAmount(user2), 50);
-        assertEq(vToken.completedWithdrawal(), 100);
-        assertEq(vToken.queuedWithdrawal(), 200);
-
-        vm.prank(user2);
-        vToken.withdrawComplete(50);
+        vToken.withdrawComplete();
         assertEq(mockToken.balanceOf(address(bridgeVault)), 0);
-        assertEq(vToken.canWithdrawalAmount(user1), 0);
-        assertEq(vToken.canWithdrawalAmount(user2), 0);
-        assertEq(vToken.completedWithdrawal(), 150);
+        assertCanWithdrawalAmount(user1, 0, 0, 0);
+        assertCanWithdrawalAmount(user2, 0, 0, 0);
+        assertEq(vToken.completedWithdrawal(), 60);
         assertEq(vToken.queuedWithdrawal(), 200);
+        (queued, pending) = vToken.withdrawals(user1, 0);
+        assertEq(queued, 60);
+        assertEq(pending, 40);
 
         mockToken.mint(address(bridgeVault), 100);
         assertEq(mockToken.balanceOf(address(bridgeVault)), 100);
-        assertEq(vToken.canWithdrawalAmount(user1), 0);
-        assertEq(vToken.canWithdrawalAmount(user2), 50);
-        assertEq(vToken.queuedWithdrawal(), 200);
-        assertEq(vToken.completedWithdrawal(), 150);
+        assertCanWithdrawalAmount(user1, 40, 1, 0);
+        assertCanWithdrawalAmount(user2, 60, 0, 60);
 
         vm.prank(user2);
-        vToken.withdrawComplete(0);
-        assertEq(mockToken.balanceOf(address(bridgeVault)), 50);
-        assertEq(vToken.canWithdrawalAmount(user1), 0);
-        assertEq(vToken.canWithdrawalAmount(user2), 0);
-        assertEq(vToken.completedWithdrawal(), 200);
+        vToken.withdrawComplete();
+        assertEq(mockToken.balanceOf(address(bridgeVault)), 40);
+        assertCanWithdrawalAmount(user1, 40, 1, 0);
+        assertCanWithdrawalAmount(user2, 0, 0, 0);
+        assertEq(vToken.completedWithdrawal(), 120);
         assertEq(vToken.queuedWithdrawal(), 200);
-    }
+        (queued, pending) = vToken.withdrawals(user2, 0);
+        assertEq(queued, 160);
+        assertEq(pending, 40);
 
-    function test_WithdrawCompleteWithInsufficientBalance() public {
-        uint256 initAmount = 1000;
-        vToken.mint(user1, initAmount);
-        vToken.mint(user2, initAmount);
-
-        uint256 redeemAmount = 100;
+        vm.prank(user2);
+        vToken.redeem(redeemAmount, user2, user2);
+        vm.prank(user2);
+        vToken.redeem(redeemAmount, user2, user2);
+        vm.prank(user2);
+        vToken.redeem(redeemAmount, user2, user2);
         vm.prank(user1);
         vToken.redeem(redeemAmount, user1, user1);
 
-        (uint256 queued, uint256 pending) = vToken.withdrawals(user1);
-        assertEq(queued, 0);
-        assertEq(pending, 100);
-        assertEq(vToken.canWithdrawalAmount(user1), 0);
-        assertEq(vToken.completedWithdrawal(), 0);
-        assertEq(vToken.queuedWithdrawal(), 100);
+        assertCanWithdrawalAmount(user1, 40, 1, 0);
+        assertCanWithdrawalAmount(user2, 0, 0, 0);
 
-        vm.prank(user1);
-        // will revert
-        vm.expectRevert(abi.encodeWithSelector(VTokenBase.InsufficientWithdrawAmount.selector, redeemAmount, 0));
-        vToken.withdrawComplete(redeemAmount);
+        mockToken.mint(address(bridgeVault), 250);
+        assertEq(mockToken.balanceOf(address(bridgeVault)), 290);
+        assertCanWithdrawalAmount(user1, 40, 1, 0);
+        assertCanWithdrawalAmount(user2, 250, 3, 10);
+        assertEq(vToken.queuedWithdrawal(), 600);
+        assertEq(vToken.completedWithdrawal(), 120);
 
-        vm.prank(user1);
-        vm.expectRevert(abi.encodeWithSelector(VTokenBase.InsufficientWithdrawAmount.selector, redeemAmount, 0));
-        vToken.withdrawComplete(0);
-
-        mockToken.mint(address(bridgeVault), 5);
-        assertEq(mockToken.balanceOf(address(bridgeVault)), 5);
-        assertEq(vToken.canWithdrawalAmount(user1), 5);
-
-        vm.prank(user1);
-        vToken.withdrawComplete(5);
-        assertEq(vToken.completedWithdrawal(), 5);
-        assertEq(vToken.queuedWithdrawal(), 100);
-        assertEq(vToken.canWithdrawalAmount(user1), 0);
-
-        vm.prank(user1);
-        vm.expectRevert(abi.encodeWithSelector(VTokenBase.InsufficientWithdrawAmount.selector, 95, 0));
-        vToken.withdrawComplete(0);
-    }
-
-    function test_WithdrawCompleteWithExceedPermittedAmount() public {
-        uint256 initAmount = 1000;
-        vToken.mint(user1, initAmount);
-        vToken.mint(user2, initAmount);
-
-        uint256 redeemAmount = 100;
-        vm.prank(user1);
-        vToken.redeem(redeemAmount, user1, user1);
-
-        (uint256 queued, uint256 pending) = vToken.withdrawals(user1);
-        assertEq(queued, 0);
-        assertEq(pending, 100);
-        assertEq(vToken.canWithdrawalAmount(user1), 0);
-        assertEq(vToken.completedWithdrawal(), 0);
-        assertEq(vToken.queuedWithdrawal(), 100);
-
-        vm.prank(user1);
-        // will revert
-        vm.expectRevert(abi.encodeWithSelector(VTokenBase.ExceedPermittedAmount.selector, 200, 100));
-        vToken.withdrawComplete(200);
+        vm.prank(user2);
+        vToken.withdrawComplete();
+        assertEq(mockToken.balanceOf(address(bridgeVault)), 40);
+        assertCanWithdrawalAmount(user1, 40, 1, 0);
+        assertCanWithdrawalAmount(user2, 0, 0, 0);
+        assertEq(vToken.completedWithdrawal(), 370);
+        assertEq(vToken.queuedWithdrawal(), 600);
+        (queued, pending) = vToken.withdrawals(user2, 0);
+        assertEq(queued, 410);
+        assertEq(pending, 90);
     }
 
     function test_AsyncMint() public {
