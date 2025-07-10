@@ -97,7 +97,10 @@ export const Soneium = {
     name: 'soneium',
     IsmpHost: "0x7F0165140D0f3251c8f6465e94E9d12C7FD40711",
     FeeToken: "0xbA9986D2381edf1DA03B0B9c1f8b00dc4AacC369",
-    TokenGateway: "0xCe304770236f39F9911BfCC51afBdfF3b8635718"
+    TokenGateway: "0xCe304770236f39F9911BfCC51afBdfF3b8635718",
+
+    // MultiSignature
+    MultiSignature: "0x4597C97a43dFBb4a398E2b16AA9cE61f90d801DD",
 }
 
 export const Bsc_Testnet = {
@@ -115,3 +118,5 @@ export const Bsc_Testnet = {
 
 export const BifrostPolakdotDest = "0x504f4c4b41444f542d32303330"
 export const BifrostPaseoDest = "0x4b5553414d412d32303330"
+// export const BifrostMultisig = "0x3658e00f5DDb9Fa0c7e9820e8d16C3C17eaB73CA"
+export const BifrostMultisig = "0x8Ce84E9Fa0101D317D8956D73610ad3e0E219d41"
