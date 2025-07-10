@@ -11,13 +11,18 @@ import {
     PostResponse,
     GetRequest
 } from "@polytope-labs/ismp-solidity/interfaces/IIsmpModule.sol";
+import {Bytes} from "@polytope-labs/solidity-merkle-trees/src/trie/Bytes.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 contract Oracle is IIsmpModule, Ownable {
     using Math for uint256;
+    using Bytes for bytes;
 
     /// @notice Fee denominator
     uint16 private constant FEE_DENOMINATOR = 10000;
+
+    /// @notice Bifrost send message module name
+    bytes private constant BIFROST_SEND_MESSAGE_MODULE_NAME = bytes("bif-slpx");
 
     struct PoolInfo {
         uint256 tokenAmount;
@@ -35,6 +40,8 @@ contract Oracle is IIsmpModule, Ownable {
 
     address private _host;
 
+    bytes private _bifrostChainId;
+
     // =================== Events ===================
     /// @notice Emitted when fee rates are changed
     event FeeRateChanged(uint16 newMintFeeRate, uint16 newRedeemFeeRate);
@@ -50,6 +57,8 @@ contract Oracle is IIsmpModule, Ownable {
     error NotImplemented();
     /// @notice Throws if the fee rate is invalid
     error InvalidFeeRate();
+    /// @notice Throws if the caller is not Bifrost
+    error NotFromBifrost();
 
     modifier onlyIsmpHost() {
         if (_msgSender() != _host) {
@@ -58,8 +67,16 @@ contract Oracle is IIsmpModule, Ownable {
         _;
     }
 
-    constructor(address hostAddress) Ownable(msg.sender) {
+    modifier onlyFromBifrost(PostRequest calldata request) {
+        if (!request.source.equals(_bifrostChainId) || !request.from.equals(BIFROST_SEND_MESSAGE_MODULE_NAME)) {
+            revert NotFromBifrost();
+        }
+        _;
+    }
+
+    constructor(address hostAddress, bytes memory bifrostChainId) Ownable(msg.sender) {
         _host = hostAddress;
+        _bifrostChainId = bifrostChainId;
     }
 
     /// Bifrost will set a fee and the data will be consistent with Bifrost Chain.
@@ -104,7 +121,7 @@ contract Oracle is IIsmpModule, Ownable {
         return tokenAmount;
     }
 
-    function onAccept(IncomingPostRequest memory incoming) external override onlyIsmpHost {
+    function onAccept(IncomingPostRequest calldata incoming) external override onlyIsmpHost onlyFromBifrost(incoming.request) {
         bytes memory body = incoming.request.body;
         (address token, uint256 tokenAmount, uint256 vtokenAmount) = abi.decode(body, (address, uint256, uint256));
         poolInfo[token].tokenAmount = tokenAmount;
