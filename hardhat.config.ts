@@ -57,7 +57,7 @@ const config: HardhatUserConfig = {
           process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
     bsc: {
-      url: "https://bsc-mainnet.public.blastapi.io",
+      url: process.env.BSC_URL,
       chainId: 56,
       accounts:
           process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
@@ -208,7 +208,6 @@ const config: HardhatUserConfig = {
       }
     ]
   },
-
 };
 
 export default config;

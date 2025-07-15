@@ -19,7 +19,7 @@ const Contracts = [
   // {name: "DefaultProxyAdmin", address: "0xB079fA0C53c2da05eA517Ffc545Cd7E3C180a136"},
   {name: "vASTR", address: "0xf659c15AEB6E41A9edAcBbF3fAeF3902c7f3fE1b"},
   {name: "vBNC", address: "0x61c57c187557442393a96bA8e6FDfE27610832a5"},
-  {name: "vDOT", address: "0xBC33B4D48f76d17A1800aFcB730e8a6AAada7Fe5"},
+  // {name: "vDOT", address: "0xBC33B4D48f76d17A1800aFcB730e8a6AAada7Fe5"},
   {name: "vGLMR", address: "0x0Bc2e0cab4AD1Dd1398D70bc268c0502e8A6DF24"}
 ]
 
@@ -36,7 +36,7 @@ task("multisig")
 
       const txCount = await hre.ethers.provider.getTransactionCount(BifrostMultisig)
       console.log(`✅ Transaction Count: ${txCount}`)
-    });
+});
 
 task("transferOwnership")
     .setAction(async (taskArgs, hre) => {
@@ -49,4 +49,4 @@ task("transferOwnership")
           await tx.wait()
           console.log(`✅ [${contract.name}] Transfer Ownership: ${tx.hash}`)
         }
-    });
+});

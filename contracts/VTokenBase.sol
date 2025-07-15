@@ -77,7 +77,7 @@ abstract contract VTokenBase is
     mapping(address => Withdrawal[]) public withdrawals;
 
     /// @notice  Max withdraw count
-    uint256 public maxWithdrawCount = 5;
+    uint256 public maxWithdrawCount;
 
     // =================== Events ===================
     /// @notice Emitted when role admin is changed

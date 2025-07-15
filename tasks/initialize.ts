@@ -1,20 +1,37 @@
 import { task } from 'hardhat/config'
 import {ethers} from "hardhat";
+import { BifrostPolakdotDest, BifrostMultisig, Bsc } from '../constants'
 
-// yarn hardhat oracle --network bsc_testnet --address 0xF1d4797E51a4640a76769A50b57abE7479ADd3d8 --token 0x667b70d97E3fd39530c6DED23E285c04e35D36d8 --amount 1000000000000000000
+// yarn hardhat initialize --network bsc
 
 task("initialize")
-    .addParam('address', ``)
-    .addParam('dest', ``)
     .setAction(async (taskArgs, hre) => {
-      //   let signers = await hre.ethers.getSigners()
-      //   let owner = signers[0]
+        let signers = await hre.ethers.getSigners()
+        let owner = signers[0]
 
-      //   const oracle = await hre.ethers.getContractAt("Oracle", taskArgs.address)
+        if (hre.network.name === "bsc") {
+          const vToken = await hre.ethers.getContractAt("VToken", Bsc.V_GLMR, owner)
+          let tx = await vToken.setOracle(Bsc.Oracle);
+          tx.wait()
+          console.log(`✅ Message Sent [${hre.network.name}] setOracle() to : ${tx.hash}`)
 
-      //   const vTokenAmount = await oracle.getVTokenAmountByToken(taskArgs.token, taskArgs.amount, 0);
-      //   console.log(`✅ Message Sent [${hre.network.name}] balanceOf() to : ${vTokenAmount}`)
+          tx = await vToken.setBridgeVault(Bsc.BridgeVault);
+          tx.wait()
+          console.log(`✅ Message Sent [${hre.network.name}] setBridgeVault() to : ${tx.hash}`)
 
-      //   const tokenAmount = await oracle.getTokenAmountByVToken(taskArgs.token, taskArgs.amount, 0);
-      //   console.log(`✅ Message Sent [${hre.network.name}] balanceOf() to : ${tokenAmount}`)
+          tx = await vToken.setTokenGateway(Bsc.TokenGateway);
+          tx.wait()
+          console.log(`✅ Message Sent [${hre.network.name}] setTokenGateway() to : ${tx.hash}`)
+
+          tx = await vToken.setBifrostDest(BifrostPolakdotDest);
+          tx.wait()
+          console.log(`✅ Message Sent [${hre.network.name}] setBifrostDest() to : ${tx.hash}`)
+          tx = await vToken.setMaxWithdrawCount(5);
+          tx.wait()
+          console.log(`✅ Message Sent [${hre.network.name}] setMaxWithdrawCount() to : ${tx.hash}`)
+
+          await vToken.transferOwnership(BifrostMultisig);
+          tx.wait()
+          console.log(`✅ Message Sent [${hre.network.name}] transferOwnership() to : ${tx.hash}`)
+        }
     });
