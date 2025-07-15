@@ -1,6 +1,6 @@
 import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
-import { Bsc_Testnet, Bsc, Ethereum, Arbitrum, Optimism, Base, Soneium, BifrostPaseoDest, BifrostPolakdotDest } from "../constants";
+import { Bsc_Testnet, Bsc, Ethereum, Arbitrum, Optimistic, Base, Soneium, BifrostPaseoDest, BifrostPolakdotDest } from "../constants";
 
 const deployFunction: DeployFunction = async function ({
   deployments,
@@ -37,9 +37,9 @@ const deployFunction: DeployFunction = async function ({
       host = Arbitrum.IsmpHost;
       bifrostChainId = BifrostPolakdotDest;
       break;
-    case Optimism.name:
-      multiSignatureAddress = Optimism.MultiSignature;
-      host = Optimism.IsmpHost;
+    case Optimistic.name:
+      multiSignatureAddress = Optimistic.MultiSignature;
+      host = Optimistic.IsmpHost;
       bifrostChainId = BifrostPolakdotDest;
       break;
     case Base.name:

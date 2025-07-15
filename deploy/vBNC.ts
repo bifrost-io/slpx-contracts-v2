@@ -1,6 +1,6 @@
 import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
-import { Bsc, Ethereum, Arbitrum, Optimism, Base, Bsc_Testnet } from "../constants";
+import { Bsc, Ethereum, Arbitrum, Optimistic, Base, Bsc_Testnet } from "../constants";
 const deployFunction: DeployFunction = async function ({
   deployments,
   getNamedAccounts,
@@ -32,9 +32,9 @@ const deployFunction: DeployFunction = async function ({
       bncAddress = Arbitrum.BNC
       multiSignatureAddress = Arbitrum.MultiSignature
       break
-    case Optimism.name:
-      bncAddress = Optimism.BNC
-      multiSignatureAddress = Optimism.MultiSignature
+    case Optimistic.name:
+      bncAddress = Optimistic.BNC
+      multiSignatureAddress = Optimistic.MultiSignature
       break
     case Base.name:
       bncAddress = Base.BNC
