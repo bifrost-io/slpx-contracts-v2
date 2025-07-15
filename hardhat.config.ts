@@ -45,19 +45,19 @@ const config: HardhatUserConfig = {
           process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     }, 
     optimistic: {
-      url: "https://optimism-rpc.publicnode.com",
+      url: process.env.OP_URL,
       chainId: 10,
       accounts:
           process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
     arbitrum: {
-      url: "https://arbitrum-one.public.blastapi.io",
+      url: process.env.ARB_URL,
       chainId: 42161,
       accounts:
           process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
     bsc: {
-      url: "https://bsc-mainnet.public.blastapi.io",
+      url: process.env.BSC_URL,
       chainId: 56,
       accounts:
           process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
@@ -69,7 +69,7 @@ const config: HardhatUserConfig = {
           process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
     base: {
-      url: "https://mainnet.base.org",
+      url: process.env.BASE_URL,
       chainId: 8453,
       accounts:
           process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
@@ -81,7 +81,7 @@ const config: HardhatUserConfig = {
           process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
     soneium: {
-      url: "https://rpc.soneium.org",
+      url: process.env.SONEIUM_URL,
       chainId: 1868,
       accounts:
           process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],

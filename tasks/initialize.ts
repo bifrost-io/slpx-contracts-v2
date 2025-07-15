@@ -3,15 +3,21 @@ import {ethers} from "hardhat";
 import { BifrostPolakdotDest, BifrostMultisig, Bsc } from '../constants'
 
 // yarn hardhat initialize --network bsc
+// yarn hardhat initialize --network arbitrum
+// yarn hardhat initialize --network optimistic
+// yarn hardhat initialize --network base
+// yarn hardhat initialize --network ethereum
 
 task("initialize")
     .setAction(async (taskArgs, hre) => {
         let signers = await hre.ethers.getSigners()
         let owner = signers[0]
+        let tx;
 
-        if (hre.network.name === "bsc") {
-          const vToken = await hre.ethers.getContractAt("VToken", Bsc.V_GLMR, owner)
-          let tx = await vToken.setOracle(Bsc.Oracle);
+        for (const vTokenAddress of [Bsc.V_BNC, Bsc.V_GLMR]) {
+          console.log(`===============================================`, vTokenAddress)
+          const vToken = await hre.ethers.getContractAt("VToken", vTokenAddress, owner)
+          tx = await vToken.setOracle(Bsc.Oracle);
           tx.wait()
           console.log(`✅ Message Sent [${hre.network.name}] setOracle() to : ${tx.hash}`)
 
@@ -33,5 +39,6 @@ task("initialize")
           await vToken.transferOwnership(BifrostMultisig);
           tx.wait()
           console.log(`✅ Message Sent [${hre.network.name}] transferOwnership() to : ${tx.hash}`)
+          console.log(`===============================================`)
         }
     });
