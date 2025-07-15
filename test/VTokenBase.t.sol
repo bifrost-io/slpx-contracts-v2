@@ -578,12 +578,19 @@ contract VTokenBaseTest is Test {
         vm.prank(owner);
         vToken.changeRoleAdmin(triggerAddress, true);
         vm.prank(triggerAddress);
-        vm.expectRevert(abi.encodeWithSelector(VTokenBase.InvalidDataParameter.selector, address(0), address(bridgeVault)));
+        vm.expectRevert(
+            abi.encodeWithSelector(VTokenBase.InvalidDataParameter.selector, address(0), address(bridgeVault))
+        );
         vToken.asyncRedeem(1000, 1000, bytes32(uint256(uint160(user1))), "");
         vm.prank(triggerAddress);
         vToken.asyncRedeem(1000, 1000, bytes32(uint256(uint160(user1))), abi.encodePacked(address(bridgeVault)));
         vm.prank(triggerAddress);
-        vToken.asyncRedeem(1000, 1000, bytes32(uint256(uint160(user1))), abi.encodePacked(bytes("0x1234567890abcdef"), address(bridgeVault)));
+        vToken.asyncRedeem(
+            1000,
+            1000,
+            bytes32(uint256(uint160(user1))),
+            abi.encodePacked(bytes("0x1234567890abcdef"), address(bridgeVault))
+        );
         assertEq(vToken.currentCycleRedeemVTokenAmount(), 0);
     }
 

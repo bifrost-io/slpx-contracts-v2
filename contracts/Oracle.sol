@@ -149,7 +149,12 @@ contract Oracle is IIsmpModule, Initializable, OwnableUpgradeable, PausableUpgra
     /// @notice Accept the post request
     /// @param incoming The incoming post request
     /// @dev The post request is from Bifrost
-    function onAccept(IncomingPostRequest calldata incoming) external override onlyIsmpHost onlyFromBifrost(incoming.request) {
+    function onAccept(IncomingPostRequest calldata incoming)
+        external
+        override
+        onlyIsmpHost
+        onlyFromBifrost(incoming.request)
+    {
         bytes memory body = incoming.request.body;
         (address token, uint256 tokenAmount, uint256 vtokenAmount) = abi.decode(body, (address, uint256, uint256));
         poolInfo[token].tokenAmount = tokenAmount;

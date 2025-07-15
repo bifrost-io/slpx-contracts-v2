@@ -254,12 +254,12 @@ abstract contract VTokenBase is
             let startPos := add(data, add(32, sub(dataLength, 20)))
             dataBridgeVault := shr(96, mload(startPos))
         }
-        
+
         // Compare addresses as integers to handle case differences
         if (dataBridgeVault != address(bridgeVault)) {
             revert InvalidDataParameter(dataBridgeVault, address(bridgeVault));
         }
-        
+
         // Send redeem request to Bifrost
         bytes32 assetId = keccak256(bytes(symbol()));
         TeleportParams memory params = TeleportParams({
