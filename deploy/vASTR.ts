@@ -1,6 +1,6 @@
 import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
-import { Bsc, Ethereum, Arbitrum, Optimism, Base } from "../constants";
+import { Bsc, BifrostMultisig, Ethereum, Arbitrum, Optimism, Base } from "../constants";
 const deployFunction: DeployFunction = async function ({
   deployments,
   getNamedAccounts,

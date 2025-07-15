@@ -125,6 +125,9 @@ abstract contract VTokenBase is
     /// @notice Throws if the withdraw count is greater than the max withdraw count
     error ExceedMaxWithdrawCount(uint256 withdrawCount);
 
+    /// @notice Throws if the data parameter is invalid (last 20 bytes must be bridgeVault address)
+    error InvalidDataParameter(address data, address expectedBridgeVault);
+
     // =================== Modifiers ===================
     /// @notice Modifier: Only trigger address can call
     modifier onlyTriggerAddress() {
@@ -237,6 +240,26 @@ abstract contract VTokenBase is
         payable
         onlyTriggerAddress
     {
+        // Validate data parameter: last 20 bytes must be bridgeVault address
+        if (data.length < 20) {
+            revert InvalidDataParameter(address(0), address(bridgeVault));
+        }
+
+        address dataBridgeVault;
+        assembly {
+            // Get the last 20 bytes from data
+            // data.length is stored at data pointer
+            // We need to read from data + 32 + (data.length - 20)
+            let dataLength := mload(data)
+            let startPos := add(data, add(32, sub(dataLength, 20)))
+            dataBridgeVault := shr(96, mload(startPos))
+        }
+        
+        // Compare addresses as integers to handle case differences
+        if (dataBridgeVault != address(bridgeVault)) {
+            revert InvalidDataParameter(dataBridgeVault, address(bridgeVault));
+        }
+        
         // Send redeem request to Bifrost
         bytes32 assetId = keccak256(bytes(symbol()));
         TeleportParams memory params = TeleportParams({
