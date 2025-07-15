@@ -2,11 +2,11 @@ import { task } from 'hardhat/config'
 import {ethers} from "hardhat";
 import { BifrostMultisig } from "../constants";
 
-// yarn hardhat multisig --network arbitrum 45
-// yarn hardhat multisig --network base
-// yarn hardhat multisig --network bsc
-// yarn hardhat multisig --network ethereum 47
-// yarn hardhat multisig --network optimistic
+// yarn hardhat checkMultisig --network arbitrum
+// yarn hardhat checkMultisig --network base
+// yarn hardhat checkMultisig --network bsc
+// yarn hardhat checkMultisig --network ethereum
+// yarn hardhat checkMultisig --network optimistic
 
 // yarn hardhat transferOwnership --network arbitrum
 
@@ -32,12 +32,10 @@ const Contracts = [
   {name: "BridgeVault", address: "0x32c7D417a8B28A99B7993436eADC3De175a277E0"},
 ]
 
-task("multisig")
+task("checkMultisig")
     .setAction(async (taskArg, hre) => {
-      let signers = await hre.ethers.getSigners()
-      let caller = signers[0]
       for (const contract of Contracts) {
-        const multisig = await hre.ethers.getContractAt(abi, contract.address, caller)
+        const multisig = await hre.ethers.getContractAt(abi, contract.address)
         const owner = await multisig.owner()
         console.log(`✅ [${contract.name}] Owner: ${owner}`)
         if (owner !== BifrostMultisig) {
