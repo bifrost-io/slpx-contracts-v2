@@ -130,3 +130,4 @@ export const Bsc_Testnet = {
 export const BifrostPolakdotDest = "0x504f4c4b41444f542d32303330"
 export const BifrostPaseoDest = "0x4b5553414d412d32303330"
 export const BifrostMultisig = "0x3658e00f5DDb9Fa0c7e9820e8d16C3C17eaB73CA"
+export const BifrostTrigger = "0xcdD077770ceb5271e42289Ee1A9b3a19442F445d"

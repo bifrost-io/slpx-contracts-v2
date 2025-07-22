@@ -3,6 +3,7 @@ import { task } from 'hardhat/config'
 import {ethers} from "hardhat";
 import { hexToU8a,u8aToHex  } from "@polkadot/util"
 import { WsProvider, ApiPromise } from '@polkadot/api';
+import { Bsc, Base } from '../constants';
 
 // yarn hardhat approve --erc20 0x051713fD66845a13BF23BACa008C5C22C27Ccb58 --to 0x4e1A1FdE10494d714D2620aAF7B27B878458459c --network zkatana
 // yarn hardhat approve --erc20 0xEaFAF3EDA029A62bCbE8a0C9a4549ef0fEd5a400 --to 0x4e1A1FdE10494d714D2620aAF7B27B878458459c --network zkatana
@@ -24,7 +25,7 @@ import { WsProvider, ApiPromise } from '@polkadot/api';
 // yarn hardhat balance --erc20 0x79D6028229f2d819a1a4bb52a05Bc97F5f37D667  --network base_testnet_local
 
 
-const GATEWAY_ADDRESS = "0xFcDa26cA021d5535C3059547390E6cCd8De7acA6"
+const GATEWAY_ADDRESS = "0xFd413e3AFe560182C4471F4d143A96d3e259B6dE"
 const GATEWAY_ABI = [{"inputs":[{"components":[{"internalType":"uint256","name":"amount","type":"uint256"},{"internalType":"uint256","name":"relayerFee","type":"uint256"},{"internalType":"bytes32","name":"assetId","type":"bytes32"},{"internalType":"bool","name":"redeem","type":"bool"},{"internalType":"bytes32","name":"to","type":"bytes32"},{"internalType":"bytes","name":"dest","type":"bytes"},{"internalType":"uint64","name":"timeout","type":"uint64"},{"internalType":"uint256","name":"nativeCost","type":"uint256"},{"internalType":"bytes","name":"data","type":"bytes"}],"internalType":"struct TeleportParams","name":"teleportParams","type":"tuple"}],"name":"teleport","outputs":[],"stateMutability":"payable","type":"function"}]
 
 task("balance")
@@ -61,11 +62,12 @@ task("teleport")
             redeem: true,
             to: "0x28ea206ff421d348f50e0b8e8c3ccfed4a117f7c78c04b2e7be3f2c7e8fcaa40",
             dest: "0x504f4c4b41444f542d32303330",
-            timeout: 21600,
+            timeout: 0,
             nativeCost: hre.ethers.utils.parseEther("0.0003"),
             data: "0x"
         }
         const tx = await gateway.teleport(teleportParams, { value: hre.ethers.utils.parseEther("0.0003") })
+        console.log(tx);
         console.log(`✅ Message Sent [${hre.network.name}] teleport() to : ${tx.hash}`)
     });
 
@@ -192,3 +194,29 @@ task("teleport_with_async_mint")
     });
 
     // npx hardhat setBalance --account 0x4597C97a43dFBb4a398E2b16AA9cE61f90d801DD --balance 1000000000000000000
+
+task("async_redeem")
+    .setAction(async (taskArgs, hre) => {
+        let signers = await hre.ethers.getSigners()
+        let owner = signers[0]
+        console.log(owner.address);
+        const vToken = await hre.ethers.getContractAt("VToken", Base.V_BNC, owner);
+
+        const api = await ApiPromise.create({ provider : new WsProvider('ws://127.0.0.1:8012') });
+        const vtokenRedeem = api.tx.slpx.redeem(
+            null,
+            { VToken: 'BNC' },
+            "2000000000000",
+            { Hyperbridge: [8453, Base.BridgeVault] }
+        ).method.toHex();
+
+        console.log(vtokenRedeem);
+        const tx = await vToken.asyncRedeem(
+            0, 
+            0, 
+            "0x79a9d66ddb9f063ee02e93f7a7e9398f376f4a9263cf29fd3e8923e4645c868f", 
+            vtokenRedeem, 
+            { value: 0 }
+        );
+        console.log(`✅ Message Sent [${hre.network.name}] teleport() to : ${tx.hash}`)
+    });

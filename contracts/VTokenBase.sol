@@ -278,6 +278,16 @@ abstract contract VTokenBase is
         currentCycleRedeemVTokenAmount = 0;
     }
 
+    function increaseCurrentCycleAmount(
+        uint256 _currentCycleTokenAmount,
+        uint256 _currentCycleVTokenAmount,
+        uint256 _currentCycleRedeemVTokenAmount
+    ) external onlyTriggerAddress {
+        currentCycleMintTokenAmount += _currentCycleTokenAmount;
+        currentCycleMintVTokenAmount += _currentCycleVTokenAmount;
+        currentCycleRedeemVTokenAmount += _currentCycleRedeemVTokenAmount;
+    }
+
     function withdrawComplete() external {
         Withdrawal[] storage _withdrawals = withdrawals[msg.sender];
         (uint256 totalAvailableAmount, uint256 pendingDeleteIndex, uint256 pendingDeleteAmount) =

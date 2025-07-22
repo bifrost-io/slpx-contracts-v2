@@ -685,4 +685,141 @@ contract VTokenBaseTest is Test {
 
         assertEq(mockToken.balanceOf(user1), amount);
     }
+
+    // =================== increaseCurrentCycleAmount 测试 ===================
+
+    function test_IncreaseCurrentCycleAmount_Success() public {
+        uint256 initialTokenAmount = vToken.currentCycleMintTokenAmount();
+        uint256 initialVTokenAmount = vToken.currentCycleMintVTokenAmount();
+        uint256 initialRedeemVTokenAmount = vToken.currentCycleRedeemVTokenAmount();
+
+        uint256 addTokenAmount = 1000;
+        uint256 addVTokenAmount = 800;
+        uint256 addRedeemVTokenAmount = 200;
+
+        vm.prank(triggerAddress);
+        vToken.increaseCurrentCycleAmount(addTokenAmount, addVTokenAmount, addRedeemVTokenAmount);
+
+        assertEq(vToken.currentCycleMintTokenAmount(), initialTokenAmount + addTokenAmount);
+        assertEq(vToken.currentCycleMintVTokenAmount(), initialVTokenAmount + addVTokenAmount);
+        assertEq(vToken.currentCycleRedeemVTokenAmount(), initialRedeemVTokenAmount + addRedeemVTokenAmount);
+    }
+
+    function test_IncreaseCurrentCycleAmount_MultipleCalls() public {
+        uint256 addTokenAmount1 = 1000;
+        uint256 addVTokenAmount1 = 800;
+        uint256 addRedeemVTokenAmount1 = 200;
+
+        uint256 addTokenAmount2 = 500;
+        uint256 addVTokenAmount2 = 400;
+        uint256 addRedeemVTokenAmount2 = 100;
+
+        // 第一次调用
+        vm.prank(triggerAddress);
+        vToken.increaseCurrentCycleAmount(addTokenAmount1, addVTokenAmount1, addRedeemVTokenAmount1);
+
+        // 第二次调用
+        vm.prank(triggerAddress);
+        vToken.increaseCurrentCycleAmount(addTokenAmount2, addVTokenAmount2, addRedeemVTokenAmount2);
+
+        assertEq(vToken.currentCycleMintTokenAmount(), addTokenAmount1 + addTokenAmount2);
+        assertEq(vToken.currentCycleMintVTokenAmount(), addVTokenAmount1 + addVTokenAmount2);
+        assertEq(vToken.currentCycleRedeemVTokenAmount(), addRedeemVTokenAmount1 + addRedeemVTokenAmount2);
+    }
+
+    function test_IncreaseCurrentCycleAmount_OnlyTriggerAddress() public {
+        uint256 addTokenAmount = 1000;
+        uint256 addVTokenAmount = 800;
+        uint256 addRedeemVTokenAmount = 200;
+
+        // 非 triggerAddress 调用应该失败
+        vm.prank(user1);
+        vm.expectRevert(abi.encodeWithSelector(VTokenBase.NotTriggerAddress.selector, user1));
+        vToken.increaseCurrentCycleAmount(addTokenAmount, addVTokenAmount, addRedeemVTokenAmount);
+
+        // 验证状态没有改变
+        assertEq(vToken.currentCycleMintTokenAmount(), 0);
+        assertEq(vToken.currentCycleMintVTokenAmount(), 0);
+        assertEq(vToken.currentCycleRedeemVTokenAmount(), 0);
+    }
+
+    function test_IncreaseCurrentCycleAmount_ZeroValues() public {
+        uint256 initialTokenAmount = vToken.currentCycleMintTokenAmount();
+        uint256 initialVTokenAmount = vToken.currentCycleMintVTokenAmount();
+        uint256 initialRedeemVTokenAmount = vToken.currentCycleRedeemVTokenAmount();
+
+        vm.prank(triggerAddress);
+        vToken.increaseCurrentCycleAmount(0, 0, 0);
+
+        // 零值调用不应该改变状态
+        assertEq(vToken.currentCycleMintTokenAmount(), initialTokenAmount);
+        assertEq(vToken.currentCycleMintVTokenAmount(), initialVTokenAmount);
+        assertEq(vToken.currentCycleRedeemVTokenAmount(), initialRedeemVTokenAmount);
+    }
+
+    function test_IncreaseCurrentCycleAmount_LargeValues() public {
+        uint256 largeTokenAmount = type(uint256).max / 2;
+        uint256 largeVTokenAmount = type(uint256).max / 3;
+        uint256 largeRedeemVTokenAmount = type(uint256).max / 4;
+
+        vm.prank(triggerAddress);
+        vToken.increaseCurrentCycleAmount(largeTokenAmount, largeVTokenAmount, largeRedeemVTokenAmount);
+
+        assertEq(vToken.currentCycleMintTokenAmount(), largeTokenAmount);
+        assertEq(vToken.currentCycleMintVTokenAmount(), largeVTokenAmount);
+        assertEq(vToken.currentCycleRedeemVTokenAmount(), largeRedeemVTokenAmount);
+    }
+
+    function test_IncreaseCurrentCycleAmount_AfterDeposit() public {
+        // 先进行一些存款操作
+        mockToken.mint(user1, 1000);
+        vm.startPrank(user1);
+        mockToken.approve(address(vToken), 1000);
+        vToken.deposit(1000, user1);
+        vm.stopPrank();
+
+        uint256 initialTokenAmount = vToken.currentCycleMintTokenAmount();
+        uint256 initialVTokenAmount = vToken.currentCycleMintVTokenAmount();
+
+        uint256 addTokenAmount = 500;
+        uint256 addVTokenAmount = 400;
+        uint256 addRedeemVTokenAmount = 100;
+
+        vm.prank(triggerAddress);
+        vToken.increaseCurrentCycleAmount(addTokenAmount, addVTokenAmount, addRedeemVTokenAmount);
+
+        assertEq(vToken.currentCycleMintTokenAmount(), initialTokenAmount + addTokenAmount);
+        assertEq(vToken.currentCycleMintVTokenAmount(), initialVTokenAmount + addVTokenAmount);
+        assertEq(vToken.currentCycleRedeemVTokenAmount(), addRedeemVTokenAmount);
+    }
+
+    function test_IncreaseCurrentCycleAmount_AfterWithdraw() public {
+        // 先进行一些提款操作
+        mockToken.mint(user1, 1000);
+        vm.startPrank(user1);
+        mockToken.approve(address(vToken), 1000);
+        vToken.deposit(1000, user1);
+        vm.stopPrank();
+
+        // 设置 Oracle 数据以便提款
+        TestOracle(address(oracle)).setPoolInfo(address(mockToken), 1000, 800);
+
+        vm.prank(user1);
+        vToken.withdraw(500, user1, user1);
+
+        uint256 initialTokenAmount = vToken.currentCycleMintTokenAmount();
+        uint256 initialVTokenAmount = vToken.currentCycleMintVTokenAmount();
+        uint256 initialRedeemVTokenAmount = vToken.currentCycleRedeemVTokenAmount();
+
+        uint256 addTokenAmount = 300;
+        uint256 addVTokenAmount = 200;
+        uint256 addRedeemVTokenAmount = 150;
+
+        vm.prank(triggerAddress);
+        vToken.increaseCurrentCycleAmount(addTokenAmount, addVTokenAmount, addRedeemVTokenAmount);
+
+        assertEq(vToken.currentCycleMintTokenAmount(), initialTokenAmount + addTokenAmount);
+        assertEq(vToken.currentCycleMintVTokenAmount(), initialVTokenAmount + addVTokenAmount);
+        assertEq(vToken.currentCycleRedeemVTokenAmount(), initialRedeemVTokenAmount + addRedeemVTokenAmount);
+    }
 }
