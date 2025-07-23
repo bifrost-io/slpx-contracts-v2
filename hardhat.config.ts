@@ -57,7 +57,7 @@ const config: HardhatUserConfig = {
           process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
     bsc: {
-      url: process.env.BSC_URL,
+      url: "https://bsc-rpc.publicnode.com",
       chainId: 56,
       accounts:
           process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],

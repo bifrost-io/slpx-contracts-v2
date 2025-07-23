@@ -3,6 +3,12 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { Bsc_Testnet, BifrostMultisig, Bsc, Ethereum, Arbitrum, Optimistic, Base, Soneium } from "../constants";
 import { ethers } from "hardhat";
 
+// yarn hardhat deploy --network base --tags deployImplementations
+// yarn hardhat deploy --network ethereum --tags deployImplementations
+// yarn hardhat deploy --network arbitrum --tags deployImplementations
+// yarn hardhat deploy --network optimistic --tags deployImplementations
+// yarn hardhat deploy --network bsc --tags deployImplementations
+
 const deployFunction: DeployFunction = async function ({
   deployments,
   getNamedAccounts,
