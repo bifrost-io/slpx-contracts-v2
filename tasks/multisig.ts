@@ -10,11 +10,11 @@ import { BifrostMultisig } from "../constants";
 
 // yarn hardhat transferOwnership --network arbitrum
 
-// yarn hardhat transactionCount --network arbitrum 49
-// yarn hardhat transactionCount --network base 49
+// yarn hardhat transactionCount --network arbitrum 55
+// yarn hardhat transactionCount --network base 55
 // yarn hardhat transactionCount --network bsc 55
-// yarn hardhat transactionCount --network ethereum 51
-// yarn hardhat transactionCount --network optimistic 49
+// yarn hardhat transactionCount --network ethereum 55
+// yarn hardhat transactionCount --network optimistic 55
 
 
 const abi = [
