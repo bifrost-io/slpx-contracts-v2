@@ -107,6 +107,10 @@ abstract contract VTokenBase is
     /// @notice Emitted when a claim is successfully processed
     event WithdrawalCompleted(address indexed receiver, uint256 tokenAmount);
 
+
+    /// @notice Emitted when a claim is successfully processed
+    event WithdrawalCompletedTo(address indexed caller, address indexed receiver, uint256 tokenAmount);
+
     /// @notice Emitted when max withdraw count is changed
     event MaxWithdrawCountChanged(uint256 maxWithdrawCount);
 
@@ -289,6 +293,10 @@ abstract contract VTokenBase is
     }
 
     function withdrawComplete() external {
+        withdrawCompleteTo(msg.sender);
+    }
+
+    function withdrawCompleteTo(address receiver) public returns (uint256) {
         Withdrawal[] storage _withdrawals = withdrawals[msg.sender];
         (uint256 totalAvailableAmount, uint256 pendingDeleteIndex, uint256 pendingDeleteAmount) =
             canWithdrawalAmount(msg.sender);
@@ -305,8 +313,9 @@ abstract contract VTokenBase is
         }
 
         completedWithdrawal += totalAvailableAmount;
-        bridgeVault.withdrawToken(address(asset()), msg.sender, totalAvailableAmount);
-        emit WithdrawalCompleted(msg.sender, totalAvailableAmount);
+        bridgeVault.withdrawToken(address(asset()), receiver, totalAvailableAmount);
+        emit WithdrawalCompletedTo(msg.sender, receiver, totalAvailableAmount);
+        return totalAvailableAmount;
     }
 
     function getTotalBalance() public view returns (uint256) {
