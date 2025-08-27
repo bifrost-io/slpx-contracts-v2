@@ -23,7 +23,7 @@ contract VETH is VToken {
     function withdrawCompleteToETH() external whenNotPaused returns (uint256) {
         uint256 amount = super.withdrawCompleteTo(address(this));
         IWETH(address(asset())).withdraw(amount);
-        (bool success, ) = msg.sender.call{value: amount}("");
+        (bool success,) = msg.sender.call{value: amount}("");
         require(success, "ETH transfer failed");
         return amount;
     }

@@ -16,12 +16,12 @@ import {ITokenGateway, TeleportParams} from "../contracts/interfaces/ITokenGatew
 contract MockWETH is ERC20, IWETH {
     event Deposit(address indexed dst, uint256 wad);
     event Withdrawal(address indexed src, uint256 wad);
-    
+
     // Store test contract reference for vm operations
     address public testContract;
 
     constructor() ERC20("Wrapped Ether", "WETH") {}
-    
+
     function setTestContract(address _testContract) external {
         testContract = _testContract;
     }
@@ -34,12 +34,12 @@ contract MockWETH is ERC20, IWETH {
     function withdraw(uint256 value) external override {
         require(balanceOf(msg.sender) >= value, "Insufficient balance");
         _burn(msg.sender, value);
-        
+
         // For testing, simulate ETH transfer to the caller (contract)
         if (testContract != address(0)) {
             VETHTest(testContract).simulateETHTransfer(msg.sender, value);
         }
-        
+
         emit Withdrawal(msg.sender, value);
     }
 
@@ -92,7 +92,7 @@ contract VETHTest is Test {
     // Events from MockVETH and base contracts
     event Deposit(address indexed caller, address indexed owner, uint256 assets, uint256 shares);
     event Transfer(address indexed from, address indexed to, uint256 value);
-    
+
     // Helper function for MockWETH to simulate ETH transfer
     function simulateETHTransfer(address to, uint256 value) external {
         vm.deal(to, to.balance + value);
@@ -146,7 +146,7 @@ contract VETHTest is Test {
 
         vm.stopPrank();
     }
-    
+
     function test_DepositWithETH() public {
         uint256 depositAmount = 1 ether;
         uint256 initialWETHBalance = weth.balanceOf(address(veth));
@@ -155,20 +155,20 @@ contract VETHTest is Test {
 
         vm.prank(user1);
         weth.approve(address(veth), type(uint256).max);
-        
+
         vm.prank(user1);
         veth.depositWithETH{value: depositAmount}();
 
         // Check WETH was deposited to the contract
         assertEq(weth.balanceOf(address(veth)), initialWETHBalance + depositAmount);
-        
+
         // Check vETH tokens were minted (1:1 ratio initially)
         uint256 expectedShares = depositAmount; // 1:1 ratio
         assertEq(veth.balanceOf(user1), initialVETHBalance + expectedShares);
-        
+
         // Check ETH was deducted from user
         assertEq(user1.balance, userETHBefore - depositAmount);
-        
+
         // Check cycle tracking
         assertEq(veth.currentCycleMintTokenAmount(), depositAmount);
         assertEq(veth.currentCycleMintVTokenAmount(), expectedShares);

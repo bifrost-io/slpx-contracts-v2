@@ -107,7 +107,6 @@ abstract contract VTokenBase is
     /// @notice Emitted when a claim is successfully processed
     event WithdrawalCompleted(address indexed receiver, uint256 tokenAmount);
 
-
     /// @notice Emitted when a claim is successfully processed
     event WithdrawalCompletedTo(address indexed caller, address indexed receiver, uint256 tokenAmount);
 
