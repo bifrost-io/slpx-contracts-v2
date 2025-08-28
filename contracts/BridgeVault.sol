@@ -1,20 +1,20 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.24;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
-import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 /**
  * @title BridgeVault
- * @notice Cross-chain bridge vault contract, responsible for receiving tokens and ETH transferred from other chains, and providing withdrawal functionality
+ * @notice Cross-chain bridge vault contract,
+ * responsible for receiving tokens and ETH transferred from other chains,
+ * and providing withdrawal functionality
  * @dev Only the VToken contract can withdraw funds
  */
-contract BridgeVault is Initializable, OwnableUpgradeable, PausableUpgradeable, ReentrancyGuardUpgradeable {
+contract BridgeVault is OwnableUpgradeable, PausableUpgradeable, ReentrancyGuardUpgradeable {
     using SafeERC20 for IERC20;
 
     // =================== State variables ===================
@@ -61,6 +61,9 @@ contract BridgeVault is Initializable, OwnableUpgradeable, PausableUpgradeable, 
 
     /// @notice Thrown when withdrawal amount is zero
     error ZeroWithdrawAmount();
+
+    /// @notice Thrown when ETH transfer failed
+    error EthTransferFailed();
 
     // =================== Modifiers ===================
 
@@ -111,7 +114,9 @@ contract BridgeVault is Initializable, OwnableUpgradeable, PausableUpgradeable, 
 
         if (token == address(0)) {
             (bool success,) = to.call{value: amount}("");
-            require(success, "ETH transfer failed");
+            if (!success) {
+                revert EthTransferFailed();
+            }
         } else {
             IERC20(token).safeTransfer(to, amount);
         }
@@ -188,7 +193,9 @@ contract BridgeVault is Initializable, OwnableUpgradeable, PausableUpgradeable, 
 
         if (token == address(0)) {
             (bool success,) = to.call{value: amount}("");
-            require(success, "ETH transfer failed");
+            if (!success) {
+                revert EthTransferFailed();
+            }
         } else {
             IERC20(token).safeTransfer(to, amount);
         }

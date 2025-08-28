@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.24;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -6,24 +6,15 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
-import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {ERC4626Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC4626Upgradeable.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import {ERC165Upgradeable} from "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol";
 import {Oracle} from "./Oracle.sol";
 import {ITokenGateway, TeleportParams} from "./interfaces/ITokenGateway.sol";
-import {IDispatcher, DispatchPost} from "@polytope-labs/ismp-solidity/interfaces/IDispatcher.sol";
-import {StateMachine} from "@polytope-labs/ismp-solidity/interfaces/StateMachine.sol";
 import {BridgeVault} from "./BridgeVault.sol";
 
-abstract contract VTokenBase is
-    Initializable,
-    ERC4626Upgradeable,
-    OwnableUpgradeable,
-    PausableUpgradeable,
-    ERC165Upgradeable
-{
+abstract contract VTokenBase is ERC4626Upgradeable, OwnableUpgradeable, PausableUpgradeable, ERC165Upgradeable {
     using Math for uint256;
     using SafeERC20 for IERC20;
 
@@ -112,6 +103,13 @@ abstract contract VTokenBase is
 
     /// @notice Emitted when max withdraw count is changed
     event MaxWithdrawCountChanged(uint256 maxWithdrawCount);
+
+    /// @notice Emitted when current cycle minted VToken amount is increased
+    event CurrentCycleTokenAmountIncreased(
+        uint256 currentCycleMintTokenAmount,
+        uint256 currentCycleMintVTokenAmount,
+        uint256 currentCycleRedeemVTokenAmount
+    );
 
     // =================== Errors ===================
     /// @notice Throws if the caller is not a role admin
@@ -289,6 +287,9 @@ abstract contract VTokenBase is
         currentCycleMintTokenAmount += _currentCycleTokenAmount;
         currentCycleMintVTokenAmount += _currentCycleVTokenAmount;
         currentCycleRedeemVTokenAmount += _currentCycleRedeemVTokenAmount;
+        emit CurrentCycleTokenAmountIncreased(
+            _currentCycleTokenAmount, _currentCycleVTokenAmount, _currentCycleRedeemVTokenAmount
+        );
     }
 
     function withdrawComplete() external {

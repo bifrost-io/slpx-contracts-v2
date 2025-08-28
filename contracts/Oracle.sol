@@ -1,7 +1,6 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.24;
 
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {
     IIsmpModule,
     IncomingPostRequest,
@@ -13,11 +12,10 @@ import {
 } from "@polytope-labs/ismp-solidity/interfaces/IIsmpModule.sol";
 import {Bytes} from "@polytope-labs/solidity-merkle-trees/src/trie/Bytes.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
-import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 
-contract Oracle is IIsmpModule, Initializable, OwnableUpgradeable, PausableUpgradeable {
+contract Oracle is IIsmpModule, OwnableUpgradeable, PausableUpgradeable {
     using Math for uint256;
     using Bytes for bytes;
 
