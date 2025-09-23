@@ -7,6 +7,6 @@ libs = ["lib"]
 remappings = [
     "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts",
     "@openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/",
-    "@polytope-labs/ismp-solidity/=node_modules/@polytope-labs/ismp-solidity",
+    "@polytope-labs/ismp-solidity/=node_modules/@polytope-labs/ismp-solidity/",
     "@polytope-labs/solidity-merkle-trees/=node_modules/@polytope-labs/solidity-merkle-trees/"
 ]
