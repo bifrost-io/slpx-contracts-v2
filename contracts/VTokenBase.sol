@@ -13,6 +13,7 @@ import {ERC165Upgradeable} from "@openzeppelin/contracts-upgradeable/utils/intro
 import {Oracle} from "./Oracle.sol";
 import {ITokenGateway, TeleportParams} from "./interfaces/ITokenGateway.sol";
 import {BridgeVault} from "./BridgeVault.sol";
+import {IWETH} from "./interfaces/IWETH.sol";
 
 abstract contract VTokenBase is ERC4626Upgradeable, OwnableUpgradeable, PausableUpgradeable, ERC165Upgradeable {
     using Math for uint256;
@@ -230,6 +231,51 @@ abstract contract VTokenBase is ERC4626Upgradeable, OwnableUpgradeable, Pausable
         });
         tokenGateway.teleport(params);
 
+        emit AsyncMintCompleted(currentCycleMintTokenAmount, currentCycleMintVTokenAmount);
+        // reset currentCycleMintVTokenAmount and currentCycleMintTokenAmount
+        currentCycleMintVTokenAmount = 0;
+        currentCycleMintTokenAmount = 0;
+    }
+
+    function asyncMintWithNativeCost(bytes32 assetId, bool isRedeem,uint256 relayerFee, uint64 timeout) external payable onlyTriggerAddress {
+        bytes memory data = abi.encode(uint32(block.chainid), currentCycleMintVTokenAmount);
+        uint256 nativeCost = msg.value;
+        TeleportParams memory params = TeleportParams({
+            amount: currentCycleMintTokenAmount,
+            relayerFee: relayerFee,
+            assetId: assetId,
+            redeem: isRedeem,
+            to: BIFROST_TOKEN_GATEWAY,
+            dest: bifrostDest,
+            timeout: timeout,
+            nativeCost: nativeCost,
+            data: data
+        });
+        tokenGateway.teleport{value: nativeCost}(params);
+        emit AsyncMintCompleted(currentCycleMintTokenAmount, currentCycleMintVTokenAmount);
+        // reset currentCycleMintVTokenAmount and currentCycleMintTokenAmount
+        currentCycleMintVTokenAmount = 0;
+        currentCycleMintTokenAmount = 0;
+    }
+
+    function asyncMintWithETH(bytes32 assetId, bool isRedeem, uint256 relayerFee, uint64 timeout) external payable onlyTriggerAddress {
+        require(IERC20(address(asset())).balanceOf(address(this)) >= currentCycleMintTokenAmount, "Insufficient WETH balance");
+        IWETH(address(asset())).withdraw(currentCycleMintTokenAmount);
+        bytes memory data = abi.encode(uint32(block.chainid), currentCycleMintVTokenAmount);
+        uint256 nativeCost = msg.value;
+        TeleportParams memory params = TeleportParams({
+            amount: currentCycleMintTokenAmount,
+            relayerFee: relayerFee,
+            assetId: assetId,
+            redeem: isRedeem,
+            to: BIFROST_TOKEN_GATEWAY,
+            dest: bifrostDest,
+            timeout: timeout,
+            nativeCost: nativeCost,
+            data: data
+        });
+        require(address(this).balance >= currentCycleMintTokenAmount + nativeCost, "Insufficient ETH balance");
+        tokenGateway.teleport{value: currentCycleMintTokenAmount + nativeCost}(params);
         emit AsyncMintCompleted(currentCycleMintTokenAmount, currentCycleMintVTokenAmount);
         // reset currentCycleMintVTokenAmount and currentCycleMintTokenAmount
         currentCycleMintVTokenAmount = 0;
