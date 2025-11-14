@@ -11,44 +11,32 @@ const deployFunction: DeployFunction = async function ({
   const { deploy } = deployments;
   const { deployer } = await getNamedAccounts();
 
-  const name = "Bifrost Voucher ETH"
-  const symbol = "vETH"
-  let wethAddress = ""
+  const name = "Bifrost Voucher MANTA"
+  const symbol = "vMANTA"
+  let mantaAddress = ""
   let multiSignatureAddress = ""
   switch (network.name) {
     case Ethereum.name:
-      wethAddress = Ethereum.WETH
+      mantaAddress = Ethereum.MANTA
       multiSignatureAddress = Ethereum.MultiSignature
-      break
-    case Arbitrum.name:
-      wethAddress = Arbitrum.WETH
-      multiSignatureAddress = Arbitrum.MultiSignature
-      break
-    case Optimistic.name:
-      wethAddress = Optimistic.WETH
-      multiSignatureAddress = Optimistic.MultiSignature
-      break
-    case Base.name:
-      wethAddress = Base.WETH
-      multiSignatureAddress = Base.MultiSignature
       break
     default:
       throw new Error("Network not supported");
   }
 
   console.log("Deployer is :", deployer);
-  await deploy("VETH", {
+  await deploy("vMANTA", {
     from: deployer,
     log: true,
     deterministicDeployment: false,
-    contract: "VETH",
+    contract: "VToken",
     proxy: {
       proxyContract: "OpenZeppelinTransparentProxy",
       execute: {
         init: {
           methodName: "initialize",
           args: [
-            wethAddress,
+            mantaAddress,
             multiSignatureAddress,
             name,
             symbol,
@@ -63,4 +51,4 @@ export default deployFunction;
 
 deployFunction.dependencies = [""];
 
-deployFunction.tags = ["VETH"];
+deployFunction.tags = ["vMANTA"];

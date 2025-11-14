@@ -237,9 +237,9 @@ abstract contract VTokenBase is ERC4626Upgradeable, OwnableUpgradeable, Pausable
         currentCycleMintTokenAmount = 0;
     }
 
-    function asyncMintWithNativeCost(bytes32 assetId, bool isRedeem,uint256 relayerFee, uint64 timeout) external payable onlyTriggerAddress {
+    function asyncMintWithNativeCost(bytes32 assetId, bool isRedeem,uint256 relayerFee, uint64 timeout, uint256 nativeCost) external payable onlyTriggerAddress {
         bytes memory data = abi.encode(uint32(block.chainid), currentCycleMintVTokenAmount);
-        uint256 nativeCost = msg.value;
+        IERC20(address(asset())).approve(address(tokenGateway), currentCycleMintTokenAmount);
         TeleportParams memory params = TeleportParams({
             amount: currentCycleMintTokenAmount,
             relayerFee: relayerFee,
@@ -251,7 +251,7 @@ abstract contract VTokenBase is ERC4626Upgradeable, OwnableUpgradeable, Pausable
             nativeCost: nativeCost,
             data: data
         });
-        tokenGateway.teleport{value: nativeCost}(params);
+        tokenGateway.teleport{value: msg.value}(params);
         emit AsyncMintCompleted(currentCycleMintTokenAmount, currentCycleMintVTokenAmount);
         // reset currentCycleMintVTokenAmount and currentCycleMintTokenAmount
         currentCycleMintVTokenAmount = 0;
@@ -321,6 +321,48 @@ abstract contract VTokenBase is ERC4626Upgradeable, OwnableUpgradeable, Pausable
             data: data
         });
         tokenGateway.teleport(params);
+        emit AsyncRedeemCompleted(currentCycleRedeemVTokenAmount);
+        currentCycleRedeemVTokenAmount = 0;
+    }
+
+    function asyncRedeemWithNativeCost(bytes32 assetId, bool isRedeem, uint256 relayerFee, uint64 timeout, bytes32 to, bytes memory data, uint256 nativeCost)
+        external
+        payable
+        onlyTriggerAddress
+    {
+        // Validate data parameter: last 20 bytes must be bridgeVault address
+        if (data.length < 20) {
+            revert InvalidDataParameter(address(0), address(bridgeVault));
+        }
+
+        address dataBridgeVault;
+        assembly {
+            // Get the last 20 bytes from data
+            // data.length is stored at data pointer
+            // We need to read from data + 32 + (data.length - 20)
+            let dataLength := mload(data)
+            let startPos := add(data, add(32, sub(dataLength, 20)))
+            dataBridgeVault := shr(96, mload(startPos))
+        }
+
+        // Compare addresses as integers to handle case differences
+        if (dataBridgeVault != address(bridgeVault)) {
+            revert InvalidDataParameter(dataBridgeVault, address(bridgeVault));
+        }
+
+        // Send redeem request to Bifrost
+        TeleportParams memory params = TeleportParams({
+            amount: currentCycleRedeemVTokenAmount,
+            relayerFee: relayerFee,
+            assetId: assetId,
+            redeem: isRedeem,
+            to: to,
+            dest: bifrostDest,
+            timeout: timeout,
+            nativeCost: nativeCost,
+            data: data
+        });
+        tokenGateway.teleport{value: msg.value}(params);
         emit AsyncRedeemCompleted(currentCycleRedeemVTokenAmount);
         currentCycleRedeemVTokenAmount = 0;
     }

@@ -3,15 +3,35 @@ pragma solidity ^0.8.24;
 
 import {VToken} from "./VToken.sol";
 import {IWETH} from "./interfaces/IWETH.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 
-contract VETH is VToken {
+contract VETH is VToken, ReentrancyGuardUpgradeable {
     /// @notice Thrown when ETH is not sent
     error EthNotSent();
 
     /// @notice Thrown when ETH transfer failed
     error EthTransferFailed();
 
-    function depositWithETH() external payable whenNotPaused returns (uint256) {
+    /// @notice Emitted when ETH is received
+    event EthReceived(address indexed sender, uint256 amount);
+
+    /// @notice Override initialize to include reentrancy guard (for new deployments)
+    function initialize(IERC20 asset, address owner, string memory name, string memory symbol)
+        public
+        override
+        initializer
+    {
+        __VTokenBase_init(asset, owner, name, symbol);
+        __ReentrancyGuard_init();
+    }
+
+    /// @notice Receive ETH from WETH withdrawal
+    receive() external payable {
+        emit EthReceived(_msgSender(), msg.value);
+    }
+
+    function depositWithETH() external payable whenNotPaused nonReentrant returns (uint256) {
         if (msg.value == 0) {
             revert EthNotSent();
         }
@@ -27,7 +47,7 @@ contract VETH is VToken {
         return vTokenAmount;
     }
 
-    function withdrawCompleteToETH() external whenNotPaused returns (uint256) {
+    function withdrawCompleteToETH() external whenNotPaused nonReentrant returns (uint256) {
         uint256 amount = super.withdrawCompleteTo(address(this));
         IWETH(address(asset())).withdraw(amount);
         (bool success,) = msg.sender.call{value: amount}("");
