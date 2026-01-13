@@ -1,6 +1,6 @@
 import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
-import { Bsc_Testnet, Bsc, Ethereum, Arbitrum, Optimistic, Base, Soneium } from "../constants";
+import { Bsc_Testnet, Bsc, Ethereum, Arbitrum, Optimistic, Base, Soneium, Pharos_Testnet } from "../constants";
 
 const deployFunction: DeployFunction = async function ({
   deployments,
@@ -32,6 +32,9 @@ const deployFunction: DeployFunction = async function ({
       break;
     case Base.name:
       multiSignatureAddress = Base.MultiSignature;
+      break;
+    case Pharos_Testnet.name:
+      multiSignatureAddress = Pharos_Testnet.MultiSignature;
       break;
     default:
       throw new Error("Network not supported");

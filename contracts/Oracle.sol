@@ -92,6 +92,15 @@ contract Oracle is IIsmpModule, OwnableUpgradeable, PausableUpgradeable {
         emit FeeRateChanged(_mintFeeRate, _redeemFeeRate);
     }
 
+    /// @notice Set the pool info
+    /// @param _token The token address
+    /// @param _tokenAmount The token amount
+    /// @param _vTokenAmount The vToken amount
+    function setPoolInfo(address _token, uint256 _tokenAmount, uint256 _vTokenAmount) external onlyOwner {
+        poolInfo[_token] = PoolInfo({tokenAmount: _tokenAmount, vTokenAmount: _vTokenAmount});
+        emit SetTokenAmount(_token, _tokenAmount, _vTokenAmount); 
+    }
+
     /// @notice Pause the contract
     function pause() external onlyOwner {
         _pause();

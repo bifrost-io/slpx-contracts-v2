@@ -1,7 +1,7 @@
 import fs from "fs";
 import { HardhatUserConfig } from "hardhat/config";
-import "@nomicfoundation/hardhat-toolbox";
-import "@nomiclabs/hardhat-ethers";
+import "@nomicfoundation/hardhat-verify";
+import "@nomicfoundation/hardhat-ethers";
 import "@openzeppelin/hardhat-upgrades";
 import "hardhat-deploy";
 import "hardhat-deploy-ethers";
@@ -39,7 +39,7 @@ const config: HardhatUserConfig = {
           process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
     ethereum: {
-      url: "https://ethereum-rpc.publicnode.com",
+      url: "https://rpc.mevblocker.io/noreverts",
       chainId: 1,
       accounts:
           process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
@@ -77,6 +77,12 @@ const config: HardhatUserConfig = {
     base_testnet: {
       url: "https://sepolia.base.org",
       chainId: 84532,
+      accounts:
+          process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+    },
+    pharos_testnet: {
+      url: "https://atlantic.dplabs-internal.com",
+      chainId: 688689,
       accounts:
           process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
@@ -146,6 +152,10 @@ const config: HardhatUserConfig = {
       bsc_testnet:
           process.env.BSC_API_KEY !== undefined
               ? process.env.BSC_API_KEY
+              : "",   
+      pharos_testnet:
+          process.env.PHAROS_TESTNET_API_KEY !== undefined
+              ? process.env.PHAROS_TESTNET_API_KEY
               : "",      
       base:
           process.env.BASE_API_KEY !== undefined

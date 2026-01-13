@@ -1,6 +1,6 @@
 import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
-import { Bsc_Testnet, Bsc, Ethereum, Arbitrum, Optimistic, Base, Soneium, BifrostPaseoDest, BifrostPolakdotDest } from "../constants";
+import { Bsc_Testnet, Bsc, Ethereum, Arbitrum, Optimistic, Base, Soneium, BifrostPaseoDest, BifrostPolakdotDest, Pharos_Testnet } from "../constants";
 
 const deployFunction: DeployFunction = async function ({
   deployments,
@@ -50,6 +50,11 @@ const deployFunction: DeployFunction = async function ({
     case Soneium.name:
       multiSignatureAddress = Soneium.MultiSignature;
       host = Soneium.IsmpHost;
+      bifrostChainId = BifrostPolakdotDest;
+      break;
+    case Pharos_Testnet.name:
+      multiSignatureAddress = Pharos_Testnet.MultiSignature;
+      host = Pharos_Testnet.IsmpHost;
       bifrostChainId = BifrostPolakdotDest;
       break;
     default:

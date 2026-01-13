@@ -152,6 +152,21 @@ export const Bsc_Testnet = {
     MultiSignature: "0x4597C97a43dFBb4a398E2b16AA9cE61f90d801DD",
 }
 
+export const Pharos_Testnet = {
+    name: 'pharos_testnet',
+    IsmpHost: "0x7F0165140D0f3251c8f6465e94E9d12C7FD40711",
+    FeeToken: "0xbA9986D2381edf1DA03B0B9c1f8b00dc4AacC369",
+    TokenGateway: "0xCe304770236f39F9911BfCC51afBdfF3b8635718",
+
+    Oracle: "0xf659c15AEB6E41A9edAcBbF3fAeF3902c7f3fE1b",
+    BridgeVault: "0x61c57c187557442393a96bA8e6FDfE27610832a5",
+    W_PHRS: "0x838800b758277cc111b2d48ab01e5e164f8e9471",
+    v_PHRS: "0xBC33B4D48f76d17A1800aFcB730e8a6AAada7Fe5",
+    // MultiSignature
+    MultiSignature: "0x8Ce84E9Fa0101D317D8956D73610ad3e0E219d41",
+    
+}
+
 export const BifrostPolakdotDest = "0x504f4c4b41444f542d32303330"
 export const BifrostPaseoDest = "0x4b5553414d412d32303330"
 export const BifrostMultisig = "0x3658e00f5DDb9Fa0c7e9820e8d16C3C17eaB73CA"
