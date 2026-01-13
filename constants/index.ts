@@ -160,8 +160,8 @@ export const Pharos_Testnet = {
 
     Oracle: "0xf659c15AEB6E41A9edAcBbF3fAeF3902c7f3fE1b",
     BridgeVault: "0x61c57c187557442393a96bA8e6FDfE27610832a5",
-    W_PHRS: "0x838800b758277cc111b2d48ab01e5e164f8e9471",
-    v_PHRS: "0xBC33B4D48f76d17A1800aFcB730e8a6AAada7Fe5",
+    W_PROS: "0x838800b758277cc111b2d48ab01e5e164f8e9471",
+    st_PROS: "0xc9A0B63d91c2A808dD631d031f037944fedDaA12",
     // MultiSignature
     MultiSignature: "0x8Ce84E9Fa0101D317D8956D73610ad3e0E219d41",
     

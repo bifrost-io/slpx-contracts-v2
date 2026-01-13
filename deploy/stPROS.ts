@@ -6,18 +6,18 @@ const deployFunction: DeployFunction = async function ({
   getNamedAccounts,
   network,
 }: HardhatRuntimeEnvironment) {
-  console.log("Running vPHRS deploy script");
+  console.log("Running stPROS deploy script");
 
   const { deploy } = deployments;
   const { deployer } = await getNamedAccounts();
 
-  const name = "Bifrost Voucher PHRS"
-  const symbol = "vPHRS"
+  const name = "Faroo Staked PROS"
+  const symbol = "stPROS"
   let multiSignatureAddress = ""
-  let wphrsAddress = ""
+  let wprosAddress = ""
   switch (network.name) {
     case Pharos_Testnet.name:
-      wphrsAddress = Pharos_Testnet.W_PHRS
+      wprosAddress = Pharos_Testnet.W_PROS
       multiSignatureAddress = Pharos_Testnet.MultiSignature
       break
     default:
@@ -25,18 +25,18 @@ const deployFunction: DeployFunction = async function ({
   }
 
   console.log("Deployer is :", deployer);
-  await deploy("VPHRS", {
+  await deploy("stPROS", {
     from: deployer,
     log: true,
     deterministicDeployment: false,
-    contract: "VPHRS",
+    contract: "stPROS",
     proxy: {
       proxyContract: "OpenZeppelinTransparentProxy",
       execute: {
         init: {
           methodName: "initialize",
           args: [
-            wphrsAddress,
+            wprosAddress,
             multiSignatureAddress,
             name,
             symbol,
@@ -51,4 +51,4 @@ export default deployFunction;
 
 deployFunction.dependencies = [""];
 
-deployFunction.tags = ["VPHRS"];
+deployFunction.tags = ["stPROS"];

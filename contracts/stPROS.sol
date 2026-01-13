@@ -6,7 +6,7 @@ import {IWETH} from "./interfaces/IWETH.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 
-contract VPHRS is VToken, ReentrancyGuardUpgradeable {
+contract stPROS is VToken, ReentrancyGuardUpgradeable {
     /// @notice Thrown when PHRS is not sent
     error EthNotSent();
 
@@ -31,7 +31,7 @@ contract VPHRS is VToken, ReentrancyGuardUpgradeable {
         emit EthReceived(_msgSender(), msg.value);
     }
 
-    function depositWithPHRS() external payable whenNotPaused nonReentrant returns (uint256) {
+    function depositWithPROS() external payable whenNotPaused nonReentrant returns (uint256) {
         if (msg.value == 0) {
             revert EthNotSent();
         }
@@ -47,7 +47,7 @@ contract VPHRS is VToken, ReentrancyGuardUpgradeable {
         return vTokenAmount;
     }
 
-    function withdrawCompleteToPHRS() external whenNotPaused nonReentrant returns (uint256) {
+    function withdrawCompleteToPROS() external whenNotPaused nonReentrant returns (uint256) {
         uint256 amount = super.withdrawCompleteTo(address(this));
         IWETH(address(asset())).withdraw(amount);
         (bool success,) = msg.sender.call{value: amount}("");
